@@ -12,15 +12,15 @@
 # RUBY_VERSION=3.1.3
 
 # Welcome message
-echo -e "This will install Ruby on the current machine.\n"
+#echo -e "This will install Ruby on the current machine.\n"
 
 # Prompt to continue
-read -p "  Continue? (y/n) " ans
-if [[ $ans != "y" ]]; then
-  echo -e "\nQuitting...\n"
-  exit
-fi
-echo
+#read -p "  Continue? (y/n) " ans
+#if [[ $ans != "y" ]]; then
+#  echo -e "\nQuitting...\n"
+#  exit
+#fi
+#echo
 
 # Time the install process
 START_TIME=$SECONDS
