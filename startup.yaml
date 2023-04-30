@@ -17,6 +17,6 @@ runcmd:
   - 'sudo systemctl enable mongod'
   - 'sudo apt-get install -y git'
   - 'git clone -b monolith https://github.com/express42/reddit.git'
-  - 'reddit && bundle install'
+  - 'cd $HOME/reddit && bundle install'
   - 'puma -d'
 
