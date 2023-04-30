@@ -38,4 +38,23 @@ pritunlVPN Server
 	someinternalhost_IP = 10.128.0.5
 	user: test
 	PIN: same as in HW
+-----------------------------------------------------------------------------------------------------
+ДЗ №6
+
+testapp_IP = 84.201.132.86 (данный IP не статичный поэтому после выгрузки ДЗ инстанс удалю)
+testapp_port = 9292
+
+Команды Yandex CLI для создания инстанса
+
+yc compute instance create \
+  --name reddit-app \
+  --hostname reddit-app \
+  --memory=2 \
+  --create-boot-disk image-folder-id=standard-images,image-family=ubuntu-1604-lts,size=10GB \
+  --network-interface subnet-name=default-ru-central1-a,nat-ip-version=ipv4 \
+  --metadata serial-port-enable=1 \
+  --metadata-from-file user-data=startup.yaml
+
+-------------------------------------------------------------------------------------------------------
+
 
