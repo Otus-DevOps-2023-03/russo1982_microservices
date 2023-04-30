@@ -7,13 +7,16 @@ users:
     ssh_authorized_keys:
       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCR+pETU1CQ9TOoz0he3PLPVfjqCr3hf5g1kDfdJpxLOG1bZ00iCxzCVfQd76tpLL3sSvgAguUqq1y6gongUG/DW9necvcUYOKSC/H1jUv6iwnh1I0d5A+VjbgzBu/cEUpYSTz/Hr2JUJ0rPs0Cxby+OOtc1GADyGbIr/CqHIM4DEN3cDKeBDb13iOMvhsmfnNmeLTOYsE5SSgSG1kHsgzD509s8vCikFS267OAkizW9shjkdtNEiApw2/ybvOiMCiJKHsB+e4QXvDtHZdYfaigrSyEg8ZsncivWZ+LAsKy/S63DLIh052aed8WFd9IrOevhuBra21voNEzRWAOHIX0zKdvqLZFOcY52DHIGG3Bl0VAjTwJc9RgYWEJrrukxnLsXLxniNkU9Y3Jt3BD6LvpYw9JSEbHWGlkiHxWgXFLu9zspmnRBdLo0qQD9SS45BOL3tC7kek4UpHEY2KiX6u5/HCxQsLZau6u0MtX5l2PAShrQfFdzX3ZxEQeKM/t6K3TZlqqAD/4L/hr6KHdG7BaWaUsTuO/hREyBnGp1j7JSh9nsfRW1N0yZT79sqGr9CILYaF6gtVjBofvhpjJMyOfOeYg/ESn+Rkg5tcViD01MfM89bURjD2ipk4gs3p/xg1NciSCxx78OIJENpUA1SAFj6wWg7YhxlIogX6KoygSbw== std@stdpc
 runcmd:
-  - 'wget -q https://github.com/Otus-DevOps-2023-03/russo1982_infra/blob/cloud-testapp/install_ruby.sh'
-  - 'chmod +x install_ruby.sh'
-  - 'bash install_ruby.sh'
-  - 'wget -q https://github.com/Otus-DevOps-2023-03/russo1982_infra/blob/cloud-testapp/install_mongodb.sh'
-  - 'chmod +x install_mongodb.sh'
-  - 'bash install_mongodb.sh'
-  - 'wget -q https://github.com/Otus-DevOps-2023-03/russo1982_infra/blob/cloud-testapp/deploy.sh'
-  - 'chmod +x deploy.sh'
-  - 'bash deploy.sh'
+  - 'sudo apt update'
+  - 'sudo apt install -y ruby-full ruby-bundler build-essential'
+  - 'wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -'
+  - 'echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list'
+  - 'sudo apt update'
+  - 'sudo apt-get install -y mongodb-org'
+  - 'sudo systemctl start mongod'
+  - 'sudo systemctl enable mongod'
+  - 'sudo apt-get install -y git'
+  - 'git clone -b monolith https://github.com/express42/reddit.git'
+  - 'reddit && bundle install'
+  - 'puma -d'
 
