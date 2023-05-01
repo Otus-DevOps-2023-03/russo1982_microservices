@@ -1,0 +1,12 @@
+{
+    "key": "image-puller_srv-accnt_key.json",
+    "cloud_id": "4bnde9m0f",
+    "folder_id": "b1gt9r1",
+    "image": "ubuntu-1604-lts",
+    "disk_size": "10",
+    "memory_gb": "2",
+    "disk_name": "reddit-full",
+    "image_family": "reddit-full",
+    "subnet_id": "e9bmf16",
+    "zone": "ru-central1-a"
+}
