@@ -44,6 +44,7 @@ pritunlVPN Server
 testapp_IP = 84.201.132.86
 testapp_port = 9292
 
+
 Команды Yandex CLI для создания инстанса
 
 yc compute instance create \
