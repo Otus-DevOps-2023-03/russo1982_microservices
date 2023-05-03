@@ -42,6 +42,7 @@ pritunlVPN Server
 ДЗ №6
 
 testapp_IP = 84.201.132.86
+
 testapp_port = 9292
 
 
