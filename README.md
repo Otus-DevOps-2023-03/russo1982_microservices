@@ -48,6 +48,8 @@ testapp_port = 9292
 
 Команды Yandex CLI для создания инстанса
 
+
+
 yc compute instance create \
   --name reddit-app \
   --hostname reddit-app \
