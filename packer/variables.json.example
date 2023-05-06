@@ -1,6 +1,6 @@
 {
     "cloud_type": "yandex",
-    "key": "/home/std/git/russo1982_infra/packer/image-puller_srv-accnt_key.json",
+    "key": "./image-puller_srv-accnt_key.json",
     "folder_id": "mlhsqvhmpe",
     "src_img_id": "728jk1o7q",
     "src_img_fam": "ubuntu-1604-lts",
