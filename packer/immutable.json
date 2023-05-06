@@ -26,17 +26,17 @@
         },
         {
             "type": "shell",
-            "script": "/home/std/git/russo1982_infra/packer/scripts/install_ruby.sh",
+            "script": "./scripts/install_ruby.sh",
             "execute_command": "sudo {{.Path}}"
         },
         {
             "type": "shell",
-            "script": "/home/std/git/russo1982_infra/packer/scripts/install_mongodb.sh",
+            "script": "./scripts/install_mongodb.sh",
             "execute_command": "sudo {{.Path}}"
         },
         {
             "type": "shell",
-            "script": "/home/std/git/russo1982_infra/packer/scripts/deploy.sh",
+            "script": "./scripts/deploy.sh",
             "execute_command": "sudo {{.Path}}"
         }
     ]
