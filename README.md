@@ -1,4 +1,268 @@
-<<<<<<< HEAD
+## ДЗ №8 Terraform
+#### Описание работы
+
+1. Создаем ветку **terraform-1** и устанавливаем дистрибутив Terraform
+```bash
+git branch terraform-1
+wget https://releases.hashicorp.com/terraform/1.4.6/terraform_1.4.6_linux_amd64.zip
+unzip terraform_1.4.6_linux_amd64.zip
+mv terraform /home/std/.local/bin
+terraform -v
+  Terraform v1.4.6
+  on linux_amd64
+```
+
+2. Создаем каталог **terraform** с **main.tf** внутри и добавляем исключения в **.gitignore**
+```bash
+mkdir terraform
+touch terraform/main.tf
+cat .gitignore
+  ...
+  variables.json
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+.terraform
+.terraform*
+  ...
+```
+
+3. Создаем сервисный аккаунт и профиль для работы terraform на веб консоле Yandex Cloud
+
+https://console.cloud.yandex.ru/folders/b1ghj2aqa2mlhsqvhmpe?section=service-accounts
+
+```bash
+yc iam service-account list
++----------------------+--------------+
+|          ID          |     NAME     |
++----------------------+--------------+
+| ajem574vimiqjfjm0cm5 | cloud-editor |
+| ajepecgsan0paarejfgc | image-puller |
++----------------------+--------------+
+```
+
+Создать ключ авторизации для сервисного аккаунта
+```bash
+yc iam key create --service-account-name cloud-editor --output /home/std/yandex-cloud/cloud-editor-key.json
+```
+далее создвть профиль м активизировать его
+```bash
+yc config profile create cloud-editor-profile
+yc config profile activate cloud-editor-profile
+yc config profile list 
+  cloud-editor-profile  ACTIVE
+  russo1982
+```
+Указывает в в файле настроек шелл переменную
+```bash
+YC_SRVC_ACCT_KEY="/home/std/yandex-cloud/cloud-editor-key.json"
+```
+```bash
+source ~/.zshrc
+echo $YC_SRVC_ACCT_KEY
+  /home/std/yandex-cloud/cloud-editor-key.json
+```
+
+4. Первый делом определим секцию Provider в файле main.tf
+```bash
+provider "yandex" {
+  token     = "<OAuth или статический ключ сервисного аккаунта>"
+  cloud_id  = "<идентификатор облака>"
+  folder_id = "<идентификатор каталога>"
+  zone      = "ru-central1-a"
+}
+```
+и запускаем инициализацию
+```bash
+terraform init
+```
+
+5. Редактируем **main.tf** создаем инстанс с помощью **terraform**
+```bash
+resource "yandex_compute_instance" "app" {
+  name = "reddit-app"
+
+  resources {
+    cores  = 2
+    memory = 2
+  }
+
+  boot_disk {
+    initialize_params {
+      # Указать id образа созданного в предыдущем домашем задании
+      image_id = "fd8fg4r8mrvoq6q2ve76"
+    }
+  }
+
+  network_interface {
+    # Указан id подсети default-ru-central1-a
+    subnet_id = "e9bem33uhju28r5i7pnu"
+    nat       = true
+  }
+
+  metadata = {
+  ssh-keys = "ubuntu:${file("~/.ssh/appuser.pub")}"
+  }
+}
+```
+```bash
+terraform plan
+terraform apply
+```
+
+Для создания инстанса использован образ reddit-base из предыдущего ДЗ
+```bash
+yc compute image list
++----------------------+------------------------+-------------+----------------------+--------+
+|          ID          |          NAME          |   FAMILY    |     PRODUCT IDS      | STATUS |
++----------------------+------------------------+-------------+----------------------+--------+
+| fd8h9ujjq500fhoq80eo | reddit-base-1682885935 | reddit-base | f2em6cfv0q0plhpcefat | READY  |
+| fd8l195i665ap12igu0k | reddit-full-1683012942 | reddit-full | f2eu5d4ulcfnhspd9hmf | READY  |
++----------------------+------------------------+-------------+----------------------+--------+
+```
+
+6. terraform загружает все файлы в текущей директории, имеющие расширение .tf Поэтому создаем **outputs.tf** для получения IP данных инстанса
+``` bash
+output "external_ip_address_app" {
+  value = yandex_compute_instance.app.network_interface.0.nat_ip_address
+}
+```
+
+7. Теперь создаём блок провижионеры, и копируем файл  puma.service на создаваемый инстанс для этого добавляем в **main.tf** провижионер file:
+```bash
+  provisioner "file" {
+    source      = "files/puma.service"
+    destination = "/tmp/puma.service"
+  }
+  ```
+  для запуска приложения используем скрипт **deploy.sh**, для которого используем remote-exec
+  ```bash
+    provisioner "remote-exec" {
+    script = "files/deploy.sh"
+  }
+  ```
+  для подключения используем  connection
+  ```bash
+    connection {
+    type  = "ssh"
+    host  = yandex_compute_instance.app.network_interface.0.nat_ip_address
+    user  = "ubuntu"
+    agent = false
+    # путь до приватного ключа
+    private_key = file("~/.ssh/appuser")
+  }
+  ```
+
+для того чтобы наши изменения применились
+```bash
+terraform taint yandex_compute_instance.app
+terraform plan
+terraform apply
+```
+
+8.  Использование input vars, для начала опишем наши переменные в **variables.tf**
+```bash
+...
+variable cloud_id {
+  description = "Cloud"
+}
+...
+```
+значения этих переменных указываем в **terraform.tfvars**
+```bash
+...
+cloud_id  = "abv"
+...
+```
+теперь указываем эти параметры в **main.tf**
+```bash
+provider "yandex" {
+#  token     = "t1.9euelZqPko_"
+#              token of terraform service account "cloud-editor"  
+  service_account_key_file = var.service_account_key_file
+  cloud_id  = var.cloud_id
+  folder_id = var.folder_id
+  zone      = var.zone
+}
+```
+И так делаем для других параметров, затем перепроверяем
+```bash
+terraform destroy
+terraform apply
+```
+---
+#### Самостоятельные задания
+
+1. Определите input переменную для приватного ключа
+**variables.tf**
+```bash
+variable "private_key_path" {
+  # Описание переменной
+  description = "Path to the private key used for ssh access"
+}
+```
+**terraform.tfvars**
+```bash
+private_key_path         = "~/.ssh/appuser"
+```
+
+2. Определите input переменную для задания зоны
+**variables.tf**
+```bash
+variable "zone" {
+  description = "Zone"
+  # Значение по умолчанию
+  default = "ru-central1-a"
+}
+```
+---
+
+#### Задание со ⭐⭐
+1. Создаем файл **lb.tf** с настройками балансировщика. Тут важен именно таргет группа и переменная **intances**
+```terraform
+resource "yandex_lb_target_group" "loadbalancer" {
+  name      = "lb-group"
+  folder_id = var.folder_id
+  region_id = var.region_id
+
+  dynamic "target" {
+    for_each = yandex_compute_instance.app.*.network_interface.0.ip_address
+    content {
+      subnet_id = var.subnet_id
+      address   = target.value
+    }
+  }
+}
+```
+
+2.  Не забываем добавить переменные в **output.tf**
+```terraform
+output "loadbalancer_ip_address" {
+  value = yandex_lb_network_load_balancer.lb.listener.*.external_address_spec[0].*.address
+}
+```
+Доюавим переменную **intances**
+```bash
+variable "instances" {
+  description = "counts instances"
+  default     = 1
+}
+```
+
+При добавлении дополнительных инстансов для обеспечения отказаустойчивосте сервиса создаём копию изначального интанса с одинаковыми требованиями. Далее балансировщик уровня 3 будет распределять трафик всегда на наименее нагружиенный инстанс.
+Необходио было добиться автоматического увеличения создаваемых инстансов и указания их сйоств. Конечно при ручном добавлении инстансов такого автоматизма не будет. Потому используются перменная **intances**
+и
+```bash
+resource "yandex_compute_instance" "app" {
+  count = var.instances
+  name  = "reddit-app-${count.index}"
+  hostname = "reddit-base-${count.index}"
+  zone = var.zone
+```
+
+---
+---
 # russo1982_infra
 russo1982 Infra repository
 

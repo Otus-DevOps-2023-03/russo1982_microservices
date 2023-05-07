@@ -4,7 +4,7 @@ variable "cloud_id" {
 variable "folder_id" {
   description = "Folder"
 }
-variable region_id {
+variable "region_id" {
   description = "region"
   default     = "ru-central1"
 }
