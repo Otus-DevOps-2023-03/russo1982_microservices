@@ -1,0 +1,10 @@
+cloud_id                 = "bfgvafvradfvfv"
+folder_id                = "adfvadfvavdafv"
+region_id                = "ru-central1"
+zone                     = "ru-central1-a"
+image_id                 = "fafdvafvadfvo"
+public_key_path          = "~/.ssh/appuser.pub"
+private_key_path         = "~/.ssh/appuser"
+subnet_id                = "eadfvavfao1bm"
+service_account_key_file = "./key.json"
+instances                = 2
