@@ -34,7 +34,7 @@ resource "yandex_compute_instance" "app" {
   }
 
   network_interface {
-    subnet_id = yandex_vpc_subnet.app-subnet.id
+    subnet_id = module.vpc.subnet
     nat = true
   }
 
