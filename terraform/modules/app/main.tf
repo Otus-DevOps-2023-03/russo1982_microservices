@@ -4,17 +4,17 @@
 terraform {
   required_providers {
     yandex = {
-      source = "yandex-cloud/yandex"
+      source  = "yandex-cloud/yandex"
       version = "0.89.0"
     }
   }
 }
 
 resource "yandex_compute_instance" "app" {
-  count = var.instances
-  name  = "reddit-app-${count.index}"
+  count    = var.instances
+  name     = "reddit-app-${count.index}"
   hostname = "reddit-app-${count.index}"
-  zone = var.zone
+  zone     = var.zone
 
   labels = {
     tags = "reddit-app"
@@ -22,8 +22,8 @@ resource "yandex_compute_instance" "app" {
 
   resources {
     core_fraction = 20
-    cores  = 2
-    memory = 2
+    cores         = 2
+    memory        = 2
   }
 
   boot_disk {
@@ -34,11 +34,14 @@ resource "yandex_compute_instance" "app" {
   }
 
   network_interface {
-    subnet_id = module.vpc.subnet
-    nat = true
+    subnet_id = var.subnet_id
+    nat       = true
   }
 
   metadata = {
     ssh-keys = "ubuntu:${file(var.public_key_path)}"
   }
+
 }
+
+

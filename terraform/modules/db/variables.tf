@@ -1,9 +1,9 @@
 # File name /modules/bd/variables.tf
 # copied from variables.tf
 
-variable db_disk_image {
+variable "db_disk_image" {
   description = "Disk image for reddit db"
-  default = "fd8t80ruels55tjlmf65" # image created by Packer with installed MongoDB named "reddit-base-mdb-1683552819"
+  default     = "fd8t80ruels55tjlmf65" # image created by Packer with installed MongoDB named "reddit-base-mdb-1683552819"
 }
 variable "public_key_path" {
   # Описание переменной

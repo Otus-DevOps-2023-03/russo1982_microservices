@@ -6,37 +6,37 @@
 terraform {
   required_providers {
     yandex = {
-      source = "yandex-cloud/yandex"
+      source  = "yandex-cloud/yandex"
       version = "0.89.0"
     }
   }
 }
 
 provider "yandex" {
-#  token     = "t1.9euelZqPko_"
-#              token of terraform service account "cloud-editor"  
+  #  token     = "t1.9euelZqPko_"
+  #              token of terraform service account "cloud-editor"  
   service_account_key_file = var.service_account_key_file
-  cloud_id  = var.cloud_id
-  folder_id = var.folder_id
-  zone      = var.zone
+  cloud_id                 = var.cloud_id
+  folder_id                = var.folder_id
+  zone                     = var.zone
 }
 
 module "vpc" {
-  source          = "./modules/vpc"
+  source = "./modules/vpc"
 }
 
 module "app" {
   source          = "./modules/app"
   public_key_path = var.public_key_path
   app_disk_image  = var.app_disk_image
-  subnet_id       = var.subnet_id
+  subnet_id       = module.vpc.subnet
 }
 
 module "db" {
   source          = "./modules/db"
   public_key_path = var.public_key_path
   db_disk_image   = var.db_disk_image
-  subnet_id       = var.subnet_id
+  subnet_id       = module.vpc.subnet
 }
 
 
