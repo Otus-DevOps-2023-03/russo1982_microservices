@@ -131,7 +131,7 @@ variable app_disk_image {
 ...
 ```
 ---
-6. Теперь надо разбить остальную концигурацию по файлам.
+6. Теперь надо разбить остальную конфигурацию по файлам.
 
 Создам файл **vpc.tf**, в который вынесу кофигурацию сети и подсети, которое применимо для всех инстансов.
 ```bash
@@ -146,26 +146,52 @@ resource "yandex_vpc_subnet" "app-subnet" {
   v4_cidr_blocks = ["192.168.10.0/24"]
 }
 ```
-добавлю **nat** адреса инстансов в **outputs.tf** переменные
+Также внутри папки **vpc** создам файл **outputs.tf** для передачи значения переменной из модуля **vpc** на другие. Например данные про подсеть.
 ```bash
-output "external_ip_addresses_app" {
-  value = yandex_compute_instance.app[*].network_interface.0.nat_ip_address
+output "subnet" {
+  value = yandex_vpc_subnet.app-subnet.id
+}
+```
+далее уже в главной файле **main.tf** ссылаемся на вывод модуля таким образом
+```bash
+module "vpc" {
+  source = "./modules/vpc"
 }
 
-output "external_ip_addresses_db" {
-  value = yandex_compute_instance.db[*].network_interface.0.nat_ip_address
+module "app" {
+  source          = "./modules/app"
+  public_key_path = var.public_key_path
+  app_disk_image  = var.app_disk_image
+  subnet_id       = module.vpc.subnet
+}
+
+module "db" {
+  source          = "./modules/db"
+  public_key_path = var.public_key_path
+  db_disk_image   = var.db_disk_image
+  subnet_id       = module.vpc.subnet
 }
 ```
 
-В итоге, в файле **main.tf** должно остаться только определение провайдера
+добавлю *адреса инстансов в **outputs.tf** переменные
 ```bash
-provider "yandex" { 
-  service_account_key_file = var.service_account_key_file
-  cloud_id  = var.cloud_id
-  folder_id = var.folder_id
-  zone      = var.zone
+output "external_ip_address_app" {
+  value = module.app.external_ip_address_app
+}
+
+output "internal_ip_address_app" {
+  value = module.app.internal_ip_address_app
+}
+output "external_ip_address_db" {
+  value = module.db.external_ip_address_db
+}
+
+output "internal_ip_address_db" {
+  value = module.db.internal_ip_address_db
 }
 ```
+
+
 ПРОВИЖЕНЫ ПОКА ОСТАВЛЯЕМ ЗА КОММЕНТАМИ
 
 Планируем и применяем изменения одной командой
@@ -183,4 +209,8 @@ LANGUAGE="en_US"
 LC_ALL="en_US.UTF-8"
 ```
 ---
+
+7. Создадим Stage & Prod
+
+В директории terrafrom создам две директории: **stage** и **prod**. Скопирую файлы **main.tf**, **variables.tf**, **outputs.tf**, **terraform.tfvars**, **__.json** из директории **terraform** в каждую из созданных директорий
 
