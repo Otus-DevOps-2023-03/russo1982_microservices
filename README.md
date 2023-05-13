@@ -213,4 +213,57 @@ LC_ALL="en_US.UTF-8"
 7. Создадим Stage & Prod
 
 В директории terrafrom создам две директории: **stage** и **prod**. Скопирую файлы **main.tf**, **variables.tf**, **outputs.tf**, **terraform.tfvars**, **__.json** из директории **terraform** в каждую из созданных директорий
+```bash
+tree
+.
+├── cloud-editor-key.json
+├── files
+│   ├── deploy.sh
+│   ├── lb.tf
+│   └── puma.service
+├── main.tf
+├── modules
+│   ├── app
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   │   └── variables.tf
+│   ├── db
+│   │   ├── main.tf
+│   │   ├── outputs.tf
+│   │   └── variables.tf
+│   └── vpc
+│       ├── main.tf
+│       └── outputs.tf
+├── outputs.tf
+├── prod
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── terraform.tfstate
+│   ├── terraform.tfstate.backup
+│   ├── terraform.tfvars
+│   └── variables.tf
+├── stage
+│   ├── main.tf
+│   ├── outputs.tf
+│   ├── terraform.tfstate
+│   ├── terraform.tfstate.backup
+│   ├── terraform.tfvars
+│   └── variables.tf
+├── terraform.tfstate
+├── terraform.tfstate.backup
+├── terraform.tfvars
+├── terraform.tfvars.example
+└── variables.tf
+
+7 directories, 31 files
+```
+---
+
+## Самостоятельные задания
+
+1. Удалите из папки **terraform** файлы **main.tf**, **outputs.tf**, **terraform.tfvars**, **variables.tf**, так как они теперь перенесены в **stage** и **prod**
+
+
+2. Отформатируйте конфигурационные файлы, используя команду terraform fmt
+
 
