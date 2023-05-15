@@ -21,3 +21,12 @@ variable "instances" {
   description = "counts instances"
   default     = 1
 }
+
+variable "db_ip" {
+  description = "database IP"
+}
+variable "private_key_path" {
+  # Описание переменной
+  description = "Path to the private key used for ssh access"
+  default     = "~/.ssh/appuser"
+}

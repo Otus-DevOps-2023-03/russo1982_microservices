@@ -266,4 +266,157 @@ tree
 
 2. Отформатируйте конфигурационные файлы, используя команду terraform fmt
 
+---
+
+## Задание со ⭐⭐
+
+1. Настройте хранение стейт файла в удаленном бекенде (remote backends) для окружений **stage** и **prod**, используя **Yandex Object Storage** в качестве бекенда.
+
+Необходимо создать сам бакет. Для это копирую файлы **variables.tf** и **terraform.tfvars** обратно в директорию **terraform**. Создаё файл **backet-s3.tf** где описываю как надо создать бакет и запускаю создание бакета.
+```bash
+terraform {
+  required_providers {
+    yandex = {
+      source  = "yandex-cloud/yandex"
+      version = "0.89.0"
+    }
+  }
+}
+
+provider "yandex" {
+  #  token     = "t1.9euelZqPko_"
+  #              token of terraform service account "cloud-editor"  
+  service_account_key_file = var.service_account_key_file
+  cloud_id                 = var.cloud_id
+  folder_id                = var.folder_id
+  zone                     = var.zone
+}
+
+resource "yandex_storage_bucket" "s3-bucket" {
+  bucket        = var.bucket_name
+  access_key    = var.access_key
+  secret_key    = var.secret_key
+  force_destroy = "true"
+}
+```
+
+Естественно сначало создаю необхожимые ключи для этого:
+```bash
+yc iam access-key create --service-account-name cloud-editor
+```
+далее указываю соответствующие переменные
+```bash
+variable access_key {
+  description = "key id"
+}
+variable secret_key {
+  description = "secret key"
+}
+variable bucket_name {
+  description = "bucket name"
+}
+```
+и запускаю создание бакета
+```bash
+terraform apply
+```
+результат
+```bash
+yc storage bucket list
++-----------------+----------------------+----------+-----------------------+---------------------+
+|      NAME       |      FOLDER ID       | MAX SIZE | DEFAULT STORAGE CLASS |     CREATED AT      |
++-----------------+----------------------+----------+-----------------------+---------------------+
+| terr-state-file | b1ghdadfvadfvaqvhmpe |        0 | STANDARD              | 2023-05-14 10:13:59 |
++-----------------+----------------------+----------+-----------------------+---------------------+
+```
+Вот теперь уже можно "кидать" **tfstat** на удалённый бакет
+
+```bash
+terraform init
+terraform apply
+```
+Теперь наш tfstate лежит в хранилище. Тожно удалить локальное и проверить запуск. Блокировки тоже работают если одноврменное запускать создание инстансов так как у s3 есть такая возможность.
+
+---
+
+## Задание с **
+
+1. Добавьте необходимые **provisioner** в модули для деплоя и работы приложения.
+
+Файлы были перемещены
+**puma.service** изменена следующая строка. Запросы из инстанса **app** будут идти на **db** и соответственно ip необходимо указать
+```bash
+Environment="DATABASE_URL=$db_ip:27017"
+```
+нужно добавить в **db/outputs.tf** вывод внутреннего ip адреса
+```bash
+output "internal_ip_address_db" {
+  value = yandex_compute_instance.db[*].network_interface.0.ip_address
+}
+```
+Но веб страница инстанса  **app** выдаёт следующую ошибку доступа в базе данных
+```bash
+Can't show blog posts, some problems with database. Refresh?
+```
+Проблема заключается в том, что демон **mongod** слушает 
+```bash
+# network interfaces
+net:
+  port: 27017
+  bindIp: 127.0.0.1
+```
+как указано в файле конфигурации **/etc/mongod.conf**
+Поэтому внесем изменение в модуль **db** и вовремя создание инстанса файл конфигурации **/etc/mongod.conf** будет корректирован так, чтоб слушал все IP
+
+Для изменений создам файл **mongodb.sh** внутри директории модуля **db** где будут указаны следующие команды
+```bash
+#!/bin/bash
+set -e
+sleep 60
+sudo sed -i 's/127.0.0.1/0.0.0.0/g' /etc/mongod.conf
+sleep 3
+sudo systemctl restart mongod
+```
+после данный скрипт запустим в провижине
+
+
+Всё работает, но **reddit-app** не может определить по какому сокету идти в базе данных **reddit-db**
+
+Для этого применяю следующее изменение в **puma.service**
+```bash
+[Unit]
+Description=Puma HTTP Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/reddit
+ExecStart=/bin/bash -lc 'puma'
+Restart=always
+Environment="DATABASE_URL=${database_url}:27017"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Далее перменную **database_url** используем в модуле **app**
+```bash
+provisioner "file" {
+    content     = templatefile("${path.module}/puma.service", { database_url = "${var.db_ip}" })
+    destination = "/tmp/puma.service"
+  }
+```
+Для внедрения DTABASE_URL можно использовать вот такой подход тоже
+```bash
+metadata = {
+    ssh-keys = "ubuntu:${file(var.public_key_path)}"
+      user-data = <<-EOF
+                  #!/bin/bash
+                  echo "DATABASE_URL=${var.db_ip}:27017" >> /etc/environment
+                  EOF
+  }
+```
+ТАким образом взамо связь между двумя инстансами будет обеспечена
+
 

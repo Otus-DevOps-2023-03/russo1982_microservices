@@ -21,9 +21,11 @@ provider "yandex" {
   zone                     = var.zone
 }
 
+/*
 module "vpc" {
   source = "../modules/vpc"
 }
+*/
 
 module "app" {
   source          = "../modules/app"
@@ -39,22 +41,29 @@ module "db" {
   subnet_id       = module.vpc.subnet
 }
 
+/*
+resource "yandex_storage_bucket" "s3-bucket" {
+  bucket        = var.bucket_name
+  access_key    = var.access_key
+  secret_key    = var.secret_key
+  force_destroy = "true"
+}
 
-#  provisioner "file"{
-#  source = "files/puma.service"
-#  destination = "/tmp/puma.service"
-#  }
-#
-#  provisioner "remote-exec" {
-#  script = "files/deploy.sh"
-#  }
-#
-#  connection {
-#  type = "ssh"
-#  host  = self.network_interface.0.nat_ip_address
-#  user = "ubuntu"
-#  agent = false
-#  # путь до приватного ключа
-#  private_key = file(var.private_key_path)
-#  }
+  provisioner "file"{
+  source = "files/puma.service"
+  destination = "/tmp/puma.service"
+  }
 
+  provisioner "remote-exec" {
+  script = "files/deploy.sh"
+  }
+
+  connection {
+  type = "ssh"
+  host  = self.network_interface.0.nat_ip_address
+  user = "ubuntu"
+  agent = false
+  # путь до приватного ключа
+  private_key = file(var.private_key_path)
+  }
+*/
