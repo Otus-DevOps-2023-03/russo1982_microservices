@@ -29,6 +29,7 @@ module "vpc" {
 }
 */
 
+/*
 module "app" {
   source          = "../modules/app"
   public_key_path = var.public_key_path
