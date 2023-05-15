@@ -31,8 +31,8 @@ module "app" {
   public_key_path = var.public_key_path
   app_disk_image  = var.app_disk_image
   subnet_id       = module.vpc.subnet
-  depends_on      = [module.db]
-  db_ip           = module.db.internal_ip_address_db
+  ##depends_on      = [module.db]
+  db_ip = module.db.internal_ip_address_db
 }
 
 
