@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------------------
 
-
+/*
 terraform {
   required_providers {
     yandex = {
@@ -13,6 +13,7 @@ terraform {
     }
   }
 }
+*/
 
 provider "yandex" {
   #  token     = "t1.9euelZqPko_"
