@@ -53,3 +53,6 @@ variable "secret_key" {
 variable "bucket_name" {
   description = "bucket name"
 }
+variable "db_ip" {
+  description = "database IP"
+}
