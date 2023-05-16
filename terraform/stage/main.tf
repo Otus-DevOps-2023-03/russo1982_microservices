@@ -1,6 +1,6 @@
 # Terraform main config taken from OTUS course webinar PDF
 #
-# 
+#
 #
 
 /*
@@ -16,18 +16,18 @@ terraform {
 
 provider "yandex" {
   #  token     = "t1.9euelZqPko_"
-  #              token of terraform service account "cloud-editor"  
+  #              token of terraform service account "cloud-editor"
   service_account_key_file = var.service_account_key_file
   cloud_id                 = var.cloud_id
   folder_id                = var.folder_id
   zone                     = var.zone
 }
 
-/*
+
 module "vpc" {
   source = "../modules/vpc"
 }
-*/
+
 
 module "app" {
   source          = "../modules/app"
