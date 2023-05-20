@@ -1,7 +1,7 @@
 # File name /modules/bd/main.tf
 # copied from db.tf
 
-/*
+
 terraform {
   required_providers {
     yandex = {
@@ -10,7 +10,7 @@ terraform {
     }
   }
 }
-*/
+
 
 resource "yandex_compute_instance" "db" {
   ## count    = var.instances
@@ -35,7 +35,9 @@ resource "yandex_compute_instance" "db" {
     }
   }
 
-
+  scheduling_policy {
+    preemptible = true
+  }
   network_interface {
     subnet_id = var.subnet_id
     nat       = true

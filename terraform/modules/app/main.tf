@@ -1,7 +1,7 @@
 # File name /modules/app/main.tf
 # copied from db.tf
 
-/*
+
 terraform {
   required_providers {
     yandex = {
@@ -10,7 +10,7 @@ terraform {
     }
   }
 }
-*/
+
 
 resource "yandex_compute_instance" "app" {
   ##count    = var.instances
@@ -38,6 +38,10 @@ resource "yandex_compute_instance" "app" {
   network_interface {
     subnet_id = var.subnet_id
     nat       = true
+  }
+
+  scheduling_policy {
+    preemptible = true
   }
 
   metadata = {
@@ -68,5 +72,3 @@ resource "yandex_compute_instance" "app" {
     private_key = file(var.private_key_path)
   }
 }
-
-

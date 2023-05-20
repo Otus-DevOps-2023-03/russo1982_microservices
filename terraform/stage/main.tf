@@ -3,7 +3,8 @@
 #
 #
 
-/*
+
+
 terraform {
   required_providers {
     yandex = {
@@ -12,7 +13,7 @@ terraform {
     }
   }
 }
-*/
+
 
 provider "yandex" {
   #  token     = "t1.9euelZqPko_"
@@ -41,6 +42,33 @@ module "db" {
   public_key_path = var.public_key_path
   db_disk_image   = var.db_disk_image
   subnet_id       = module.vpc.subnet
+}
+
+resource "local_file" "app_inventory" {
+  filename = "../../ansible/inventory.json"
+  content  = <<-EOF
+  {
+  "all": {
+    "children": {
+      "app": {
+        "hosts": {
+          "app-server": {
+            "ansible_host": ${module.app.external_ip_address_app}
+          }
+        }
+      },
+      "db": {
+        "hosts": {
+          "db-server": {
+            "ansible_host": ${module.db.external_ip_address_db}
+          }
+        }
+      }
+    }
+  }
+}
+
+EOF
 }
 
 /*
