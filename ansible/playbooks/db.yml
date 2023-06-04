@@ -3,8 +3,6 @@
   hosts: db
   # tags: db-tag
   become: true
-  vars:
-    mongo_bind_ip: 0.0.0.0
 
   roles:
     - db
