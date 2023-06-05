@@ -2,10 +2,10 @@ dist: xenial
 sudo: required
 language: bash
 before_install:
-  - curl https://raw.githubusercontent.com/express42/otus-homeworks/2023-03/run.sh | bash
+  - curl "https://raw.githubusercontent.com/express42/otus-homeworks/2023-03/run.sh" | bash
   - sudo apt-get update
   - sleep 30
-  - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  - curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
   - sudo python get-pip.py
   - sudo pip install cryptography
   - sudo pip install ansible

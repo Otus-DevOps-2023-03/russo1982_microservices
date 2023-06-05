@@ -2,7 +2,7 @@
     "builders": [
         {
             "type": "yandex",
-            "service_account_key_file": "./image-puller_srv-accnt_key.json",
+            "service_account_key_file": "image-puller_srv-accnt_key.json",
             "folder_id": "b1ghj2aq",
             "source_image_family": "ubuntu-1604-lts",
             "image_name": "reddit-base-{{timestamp}}",
