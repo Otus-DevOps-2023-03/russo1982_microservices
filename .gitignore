@@ -6,3 +6,5 @@
 .terraform*
 *.json
 *.retry
+jdauphant.nginx
+vault.key
