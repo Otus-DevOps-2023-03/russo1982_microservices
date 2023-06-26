@@ -1,8 +1,0 @@
----
-- name: Configure MongoDB
-  hosts: db
-  # tags: db-tag
-  become: true
-
-  roles:
-    - db
