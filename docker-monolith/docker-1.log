@@ -2,3 +2,7 @@ REPOSITORY                  TAG       IMAGE ID       CREATED         SIZE
 russo1982/ubuntu-tmp-file   latest    9c764ec81818   2 minutes ago   63.2MB
 ubuntu                      18.04     f9a80a55f492   4 weeks ago     63.2MB
 hello-world                 latest    9c7a54a9a43c   7 weeks ago     13.3kB
+
+
+Отличичие первое в том, что в докер имедж содержится исходная информация о слоях и описание нужное для создание контейнера.
+А уже в контейнере дополнительно описываются инфраструктурные элементы как сеть, volume, запущенные процесы, HostnamePath, Platform и др.

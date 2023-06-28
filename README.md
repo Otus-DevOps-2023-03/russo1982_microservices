@@ -194,3 +194,87 @@ russo1982/ubuntu-tmp-file   latest    9c764ec81818   5 seconds ago   63.2MB
 ubuntu                      18.04     f9a80a55f492   4 weeks ago     63.2MB
 hello-world                 latest    9c7a54a9a43c   7 weeks ago     13.3kB
 ```
+
+## Задание со *
+
+- Сравнитт вывод двух следующих команд
+```bash
+$ docker inspect <u_container_id>
+$ docker inspect <u_image_id>
+```
+
+Запускаю докер контейнер на основе созданного докер имеджа
+```bash
+$ sudo docker images
+REPOSITORY                  TAG       IMAGE ID       CREATED        SIZE
+russo1982/ubuntu-tmp-file   latest    9c764ec81818   20 hours ago   63.2MB
+ubuntu                      18.04     f9a80a55f492   4 weeks ago    63.2MB
+hello-world                 latest    9c7a54a9a43c   7 weeks ago    13.3kB
+
+$ sudo docker run russo1982/ubuntu-tmp-file
+$ sudo docker ps -a
+CONTAINER ID   IMAGE                       COMMAND       CREATED         STATUS                     PORTS     NAMES
+138fbc837b42   russo1982/ubuntu-tmp-file   "/bin/bash"   3 minutes ago   Exited (0) 3 minutes ago             mystifying_wright
+0406211abee7   hello-world                 "/hello"      45 hours ago    Exited (0) 45 hours ago              stoic_liskov
+```
+И теперь можно начать сравнивать контейнер и имедж
+```bash
+$ sudo docker inspect 138f
+$ sudo docker inspect russo1982/ubuntu-tmp-file
+```
+Буду изучать чем отличается контейнер от образа.
+
+Отличичие первое в том, что в докер имедж содержится исходная информация о слоях и описание нужное для создание контейнера.
+А уже в контейнере дополнительно описываются инфраструктурные элементы как сеть, volume, запущенные процесы, HostnamePath, Platform и др.
+
+---
+
+### Docker kill & stop
+
+- kill сразу посылает SIGKILL
+- stop посылает SIGTERM , и через 10 секунд (настраивается) посылает SIGKILL
+- SIGTERM - сигнал остановки приложения
+- SIGKILL - безусловное завершение процесса
+- Подробнее про сигналы в Linux [https://ru.wikipedia.org/wiki/%D0%A1%D0%B8%D0%B3%D0%BD%D0%B0%D0%BB_(Unix)]
+
+```bash
+$ sudo docker ps -q # показывает id контейнера который запущен с опциями -it
+3aea3ec2c4ce
+$ sudo docker kill $(sudo docker ps -q)
+3aea3ec2c4ce
+```
+
+### docker system df
+
+- Отображает сколько дискового пространства занято образами, контейнерами и volume’ами
+- Отображает сколько из них не используется и возможно удалить
+
+### Docker rm & rmi
+
+- rm удаляет контейнер, можно добавить флаг -f , чтобы удалялся работающий container (будет послан SIGKILL )
+- rmi удаляет image, если от него не зависят запущенные контейнеры
+
+```bash
+$ docker rm $(docker ps -a -q) # удалит все незапущенные контейнеры
+```
+---
+
+## Docker-контейнеры
+
+Надо установить Yandex Cloud CLI
+
+**docker-machine** - встроенный в докер инструмент для создания хостов и установки на них docker engine. Имеет поддержку облаков и систем виртуализации (Virtualbox, GCP и др.)
+
+Вобщем задача стоит такая, что в инстансе в Yandex Cloud запускается докер. Соответственно этим докером можно будет управлять через **docker-machine**
+
+Команда создания
+- **docker-machine create <имя>**
+
+Имен может быть много, переключение между ними через
+ - **eval $(docker-machine env <имя>)**
+
+ Переключение на локальный докер
+ - **eval $(docker-machine env --unset)**
+
+ Удаление
+ - **docker-machine rm <имя>**
