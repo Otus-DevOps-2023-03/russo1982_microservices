@@ -278,3 +278,92 @@ $ docker rm $(docker ps -a -q) # удалит все незапущенные к
 
  Удаление
  - **docker-machine rm <имя>**
+
+Повторю еще раз
+- yc создаст инстанс из стандартного образа в image-family ubuntu-1804-lts
+- **docker-machine** инициализирует на нём докер хост систему
+- После запуска **eval $(docker-machine env <имя>)** все докер команды запускаемые в той же консоли работают с удаленным докер демоном в Yandex Cloud.
+
+Начнём!!!
+
+Создад Docker хост в Yandex Cloud и настрою локальное окружение на работу с ним
+```bash
+$ yc compute instance create \
+  --name docker-host \
+  --hostname russo-docker-host \
+  --cores 2 \
+  --core-fraction 5 \
+  --preemptible \
+  --zone "ru-central1-a" \
+  --network-interface subnet-name=default-ru-central1-a,nat-ip-version=ipv4 \
+  --create-boot-disk image-folder-id=standard-images,image-family=ubuntu-1804-lts,size=15 \
+  --ssh-key ~/.ssh/appuser.pub
+```
+Инстанс в Yandex Cloud создан и теперь создаём докер демон в этом инстансе. Но сперва надо заметить что сразу указываем свойство **--engine-storage-driver overlay2**. Иначе будет ошибка:
+```bash
+Setting Docker configuration on the remote daemon...
+Error creating machine: Error running provisioning: ssh command error:
+command : sudo systemctl -f start docker
+err     : exit status 1
+output  : Job for docker.service failed because the control process exited with error code.
+See "systemctl status docker.service" and "journalctl -xe" for details.
+```
+Причиной которого является:
+```bash
+dockerd[4651]: failed to start daemon: error initializing graphdriver: [graphdriver] ERROR: the aufs storage-driver has been deprecated and removed; visit https://docs.docker.com/go/storage-driver/ for more information: aufs
+```
+Вот и всё создаём докер демон в инстансе
+
+```bash
+$ docker-machine create \
+  --driver generic \
+  --engine-storage-driver overlay2 \
+  --generic-ip-address=158.160.50.181 \
+  --generic-ssh-user yc-user \
+  --generic-ssh-key ~/.ssh/appuser \
+  docker-host
+```
+Кстати, если замчаешься с ошибкой:
+```bash
+Docker machine "some machine" already exists
+```
+то просто сделай это:
+```bash
+$ rm -rv ~/.docker/machine/machines/*
+```
+Вот результат
+```bash
+Checking connection to Docker...
+Docker is up and running!
+To see how to connect your Docker Client to the Docker Engine running on this virtual machine, run: docker-machine env docker-host
+```
+После данной процедуру взял паузу и отключил инстанс в Yandex Cloud. А когда на следующий день запустил инстанс **docker-machine** не мог найти инстанс, так как у него IP уже был другой. Для решение этой проблемы надо поменять настройки в файлу **~/.docker/machine/machines/docker-host/config.json** и указать актуальный IP адрес.
+После выдет следующая проблема:
+```bash
+$ docker-machine ls
+NAME          ACTIVE   DRIVER    STATE     URL                          SWARM   DOCKER    ERRORS
+docker-host   -        generic   Running   tcp://158.160.101.119:2376           Unknown   Unable to query docker version: Get https://158.160.101.119:2376/v1.15/version: x509: certificate is valid for 158.160.50.181, not 158.160.101.119
+```
+Для решения запускаю:
+```bash
+$ docker-machine provision docker-host
+$ docker-machine ls
+NAME          ACTIVE   DRIVER    STATE     URL                          SWARM   DOCKER    ERRORS
+docker-host   -        generic   Running   tcp://158.160.101.119:2376           v24.0.2
+```
+Ну всё, дальше надо работать.
+Теперь переключаюсь на работу с этим удалённым докер демоном
+```bash
+$ docker-machine env docker-host
+export DOCKER_TLS_VERIFY="1"
+export DOCKER_HOST="tcp://158.160.101.119:2376"
+export DOCKER_CERT_PATH="/home/russo/.docker/machine/machines/docker-host"
+export DOCKER_MACHINE_NAME="docker-host"
+# Run this command to configure your shell:
+# eval $(docker-machine env docker-host)
+```
+```bash
+eval $(docker-machine env docker-host)
+```
+
+Всё! Теперь при запуске докер команды изменения будут происходить в инстансе Yandex Cloud.
