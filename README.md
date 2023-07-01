@@ -446,3 +446,28 @@ NAME          ACTIVE   DRIVER    STATE     URL                          SWARM   
 docker-host   -        generic   Running   tcp://158.160.101.119:2376           v24.0.2
 ```
 Состояние указано "рабочее". Открываю в браузере http://158.160.101.119:9292
+---
+
+## Docker hub: push
+
+Теперь надо загрузить образ на **docker hub** для использования в будущем
+```bash
+$ docker login
+Username: russo1982docker
+Password:
+
+Login Succeeded
+```
+```bash
+$ docker tag reddit:latest russo1982docker/russo-otus-reddit:1.0
+$ docker push russo1982docker/russo-otus-reddit:1.0
+```
+Теперь образ есть в докер хабе и можно запустить его не только в докер хосте в Yandex Cloud, но и в локальном докере или на другом хосте
+
+Пробую:
+```bash
+$ sudo docker run --name reddit -d -p 9292:9292 russo1982docker/russo-otus-reddit:1.0
+```
+---
+
+## Задание со *
