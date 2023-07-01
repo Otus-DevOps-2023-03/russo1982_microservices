@@ -365,5 +365,84 @@ export DOCKER_MACHINE_NAME="docker-host"
 ```bash
 eval $(docker-machine env docker-host)
 ```
+И ради Бога не закрывай данную сесси в терминале, чтоб не потерять переменные среды **eval $(docker-machine env docker-host)** Также надо проверить докер образы в самом инстансе. Схожу туда по **ssh**
+```bash
+$ ssh yc-user@158.160.54.188
 
+yc-user@docker-host:~$ sudo docker images -a
+REPOSITORY   TAG       IMAGE ID       CREATED         SIZE
+reddit       latest    48fdba02d556   2 minutes ago   690MB
+```
 Всё! Теперь при запуске докер команды изменения будут происходить в инстансе Yandex Cloud.
+---
+
+## Структура репозитория
+
+Далее создам четыре файла в директории **docker-monolith** и вся работа происходит в этой директории
+- Dockerfile - текстовое описание нашего образа
+- mongod.conf - подготовленный конфиг для mongodb
+- db_config - содержит переменную окружения со ссылкой на mongodb
+- start.sh - скрипт запуска приложения
+
+Создам **Dockerﬁle**
+```bash
+FROM ubuntu:18.04 # а основу беру дистрибутив Ubuntu версии 18.04
+
+# для работы приложения нужны mongo и ruby
+RUN apt-get update
+RUN apt-get install -y mongodb-server ruby-full ruby-dev build-essential git
+
+# из-за bundler requires Ruby version >= 2.6.0. The current ruby version is 2.5.0
+# надо указать версию. Иначе будет ошибка ERROR: failed to solve: process "/bin/sh -c gem install bundler" did not complete successfully
+RUN gem install bundler -v 2.3.26
+
+# скачиваю приложение в контейнер из git репо
+RUN git clone -b monolith https://github.com/express42/reddit.git
+
+# скопирую файлы конфигурации в создаваемый контейнер
+COPY mongod.conf /etc/mongod.conf
+COPY db_config /reddit/db_config
+COPY start.sh /start.sh
+
+# нужно установить зависимости приложения и произвести настройку
+RUN cd /reddit && rm Gemfile.lock && bundle install
+RUN chmod 0777 /start.sh
+
+# добавляю команду для старт сервиса при запуске контейнера
+CMD ["/start.sh"]
+```
+
+### Сборка образа
+
+Попробую собрать свой образ
+
+```bash
+$ docker build -t reddit:latest . # Точка в конце обязательна, она указывает на путь до Docker-контекста, а флаг -t задает тег для собранного образа
+
+# проверю список образов
+$ docker images -a
+REPOSITORY                  TAG       IMAGE ID       CREATED         SIZE
+reddit                      latest    da99fafa4c65   3 minutes ago   679MB
+russo1982/ubuntu-tmp-file   latest    9c764ec81818   2 days ago      63.2MB
+ubuntu                      18.04     f9a80a55f492   4 weeks ago     63.2MB
+hello-world                 latest    9c7a54a9a43c   8 weeks ago     13.3kB
+```
+
+### Запуск контейнера
+
+Теперь можно запустить контейнер командой:
+```bash
+$ docker run --name reddit -d --network=host reddit:latest
+193e7613a492db9d99774e593604c56324f0b0e74939717083faa1cbff04226e
+```
+Проверю результат:
+```bash
+$ docker ps
+CONTAINER ID   IMAGE           COMMAND       CREATED         STATUS         PORTS     NAMES
+b9d28d0fd762   reddit:latest   "/start.sh"   7 seconds ago   Up 5 seconds             reddit
+
+$ docker-machine ls
+NAME          ACTIVE   DRIVER    STATE     URL                          SWARM   DOCKER    ERRORS
+docker-host   -        generic   Running   tcp://158.160.101.119:2376           v24.0.2
+```
+Состояние указано "рабочее". Открываю в браузере http://158.160.101.119:9292
