@@ -2,7 +2,7 @@
 #
 #
 #
-
+/*
 terraform {
   required_providers {
     yandex = {
@@ -11,7 +11,7 @@ terraform {
     }
   }
 }
-
+*/
 provider "yandex" {
   #  token     = "t1.9euelZqPko_"
   #              token of terraform service account "cloud-editor"
