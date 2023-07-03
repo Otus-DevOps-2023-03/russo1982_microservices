@@ -1,0 +1,4 @@
+---
+- import_playbook: prepare_system.yml
+- import_playbook: docker_install.yml
+- import_playbook: docker_image_run.yml

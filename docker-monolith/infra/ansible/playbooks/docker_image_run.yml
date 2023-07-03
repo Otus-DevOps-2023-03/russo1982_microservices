@@ -1,0 +1,30 @@
+---
+- name: Run Docker Image
+  hosts: all
+  become: true
+  vars:
+#    container_count: 1
+    default_container_name: reddit
+    default_container_image: russo1982docker/russo-otus-reddit:1.0
+#    default_container_command: docker run --name {{ default_container_name }} -d -p 9292:9292 {{ default_container_image }}
+  tasks:
+    - name: Pull default Docker image
+      docker_image:
+        name: "{{ default_container_image }}"
+        source: pull
+
+    - name: Remove container
+      docker_container:
+        name: "{{ default_container_name }}"
+        state: absent
+
+    - name: Create default containers
+      docker_container:
+        name: "{{ default_container_name }}"
+        image: "{{ default_container_image }}"
+#       command: "{{ default_container_command }}"
+        state: started
+        restart: yes
+        ports:
+          - "9292:9292"
+#      with_sequence: count={{ container_count }}

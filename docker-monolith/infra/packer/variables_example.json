@@ -1,0 +1,14 @@
+{
+    "cloud_type": "yandex",
+    "key": "image-puller_srv-accnt_key.json",
+    "folder_id": "badvavmpe",
+    "src_img_id": "fsvdsvdadsv0mru",
+    "src_img_fam": "ubuntu-1804-lts",
+    "ssh_usr": "ubuntu",
+    "ssh_key": "/.ssh/appuser.pub",
+    "image_name": "reddit-docker",
+    "subnet_id": "SDsdhpo1bm",
+    "zone1": "ru-central1-a",
+    "zone2": "ru-central1-b",
+    "zone3": "ru-central1-c"
+}

@@ -4,7 +4,7 @@
 *.tfvars
 .terraform
 .terraform*
-*.json
+variables.json
 *.retry
 jdauphant.nginx
 vault.key

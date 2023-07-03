@@ -1,7 +1,7 @@
 # russo1982_microservices
 
 
-## ДЗ №16 Технология контейнеризации. Введение в Docker
+## ДЗ №16 Технология контейнеризации. Введение в Docker (работа с веткой: docker-2)
 ---
 
 **ПЛАН**
@@ -491,3 +491,119 @@ $ tree
 │   ├── terraform.tfvars
 │   └── variables.tf
 ```
+---
+
+Займусь созданием динамического инвентори файла. При этом буду использовать темплейт файл **/ansible/hosts.tpl**, который запишем IP адреса всех создаваемых инстансов.
+```bash
+[docker-hosts]
+%{ for ip in host_ip ~}
+${ip}
+%{ endfor ~}
+```
+Вношу в **main.tf** следующие изменения:
+```bash
+...
+resource "local_file" "ans_inventory" {
+    filename  = "${path.module}/ansible/inventory.ini"
+    content   = templatefile("${path.module}/ansible/hosts.tpl",
+                {
+                  host_ip = "${yandex_compute_instance.docker-host[*].network_interface.0.nat_ip_address}"
+                })
+
+}
+```
+И тепер файл **inventory.ini** будет генерироваьтся новый, каждый раз после запуска **terraform apply**
+**inventory.ini**
+```bash
+[docker-hosts]
+51.250.9.244
+158.160.55.58
+```
+Далее создаю файл **ansible.cfg**
+```bash
+[defaults]
+inventory = inventory.ini
+remote_user = ubuntu
+private_key_file = ~/.ssh/appuser
+
+# Отключим проверку SSH Host-keys (поскольку они всегда разные для новых инстансов)
+host_key_checking = False
+
+# Отключим создание *.retry-файлов (они нечасто нужны, но мешаются под руками)
+retry_files_enabled = False
+
+nocows = True
+
+[diff]
+# Включим обязательный вывод diff при наличии изменений и вывод 5 строк контекста
+always = True
+context = 5
+```
+Создаю соответствующие плейбуки:
+```bash
+playbooks
+        ├── docker_image_run.yml
+        ├── docker_install.yml
+        ├── prepare_system.yml
+        └── site.yml
+```
+Далее проверка плейбука **prepare_system.yml**
+```bash
+$ ansible-playbook playbooks/prepare_system.yml --check
+PLAY RECAP *********************************************************************************************************
+158.160.55.58              : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+51.250.9.244               : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+И боевой запуск.
+-
+Далее проверка плейбука **docker_install.yml** и боевой запуск:
+```bash
+$ ansible-playbook playbooks/docker_install.yml
+PLAY RECAP *********************************************************************************************************
+158.160.55.58              : ok=5    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+51.250.9.244               : ok=5    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+Далее проверка плейбука **docker_image_run.yml** и боевой запуск:
+```bash
+$ ansible-playbook playbooks/docker_image_run.yml --check
+$ ansible-playbook playbooks/docker_image_run.yml
+```
+И в конце собираю все плейбуки в один **site.yml**
+```bash
+---
+- import_playbook: prepare_system.yml
+- import_playbook: docker_install.yml
+- import_playbook: docker_image_run.yml
+```
+Осталось тепер создать образ с помощью **packer** где уже будет установленный **docker**
+Для этого создаю директорию **infra/packer** и внутри следющие файлы
+```bash
+packer
+│   ├── reddit-docker-img.json
+│   └── variables.json
+```
+Далее валидация
+```bash
+$ packer validate -var-file=variables.json reddit-docker-img.json
+The configuration is valid.
+```
+И сборка образа
+```bash
+$ packer build -var-file=variables.json reddit-docker-img.json
+==> Builds finished. The artifacts of successful builds are:
+--> yandex: A disk image was created: reddit-docker (id: fd83ap0hqqjnnmr95ctm) with family name
+```
+```bash
+$ yc compute image list
++----------------------+-----------------------------+-------------+----------------------+--------+
+|          ID          |            NAME             |   FAMILY    |     PRODUCT IDS      | STATUS |
++----------------------+-----------------------------+-------------+----------------------+--------+
+| fd82dkbbdpdktah8ega7 | reddit-base-ruby-1683553352 | reddit-base | f2eu5d4ulcfnhspd9hmf | READY  |
+| fd83ap0hqqjnnmr95ctm | reddit-docker               |             | f2e5qmi2ie473qkts417 | READY  |
+| fd890b36qcffndlq2g1r | reddit-ruby-1687200547      | reddit-full | f2eu5d4ulcfnhspd9hmf | READY  |
+| fd8h9ujjq500fhoq80eo | reddit-base-1682885935      | reddit-base | f2em6cfv0q0plhpcefat | READY  |
++----------------------+-----------------------------+-------------+----------------------+--------+
+```
+
+И вот тут ВСЁ!!!
