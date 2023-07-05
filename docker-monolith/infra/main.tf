@@ -53,6 +53,13 @@ resource "yandex_compute_instance" "docker-host" {
   }
 }
 
+resource "yandex_vpc_address" "static_ip" {
+  name = "static white IP"
+  external_ipv4_address {
+    zone_id = var.zone
+  }
+}
+
 resource "local_file" "ans_inventory" {
   filename = "${path.module}/ansible/inventory.ini"
   content = templatefile("${path.module}/ansible/hosts.tpl",
