@@ -40,4 +40,50 @@ ubuntu@russo-docker-host0:~$ systemctl status docker
    Active: active (running) since Wed 2023-07-05 19:14:09 UTC; 1min 3s ago
 ```
 
-Работает родимая!!!
+Работает родимая!!! Также привязываю туда **docker-machine**
+```bash
+docker-machine create \
+  --driver generic \
+  --engine-storage-driver overlay2 \
+  --generic-ip-address= < IP address > \
+  --generic-ssh-user ubuntu \
+  --generic-ssh-key ~/.ssh/appuser \
+  docker-host-0
+```
+```bash
+$ docker-machine env docker-host-0
+export DOCKER_TLS_VERIFY="1"
+export DOCKER_HOST="tcp://< IP address >:2376"
+export DOCKER_CERT_PATH="~/.docker/machine/machines/docker-host-0"
+export DOCKER_MACHINE_NAME="docker-host-0"
+# Run this command to configure your shell:
+# eval $(docker-machine env docker-host-0)
+```
+
+Далее скачиваю каталог с готовыми микросервисами
+```bash
+$ wget https://github.com/express42/reddit/archive/microservices.zip
+$ unzip microservices.zip
+$ mv reddit-microservices src
+```
+Приложение состоит из трех компонентов:
+- **post-py** - сервис отвечающий за написание постов
+- **comment** - сервис отвечающий за написание комментариев
+- **ui** - веб-интерфейс, работающий с другими сервисами
+также требуется база данных **MongoDB**
+
+Внутри директории каждого сервиса создаю свой **Dockerfile**
+```bash
+$ ls -l src
+
+comment
+post-py
+ui
+```
+
+- Сервис **post-py**  **./post-py/Dockerfile**
+- Сервис **comment**  **./comment/Dockerfile**
+- Сервис **ui**       **./ui/Dockerfile**
+---
+
+## Сборка приложения
