@@ -87,3 +87,59 @@ ui
 ---
 
 ## Сборка приложения
+
+Надо скачать последний образ MongoDB:
+```bash
+$ docker pull mongo:latest # Напоминаю что в данный момент работаем с докером на Яндекс Инстансе
+```
+Результат на Яндекс Инстансе
+```bash
+ubuntu@docker-host-0:~$ sudo docker images -a
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+mongo        latest    1f3d6ec739d8   40 hours ago   654MB
+```
+---
+
+Далее сборка образов с сервисами:
+Сборка **post-py**
+```bash
+docker build -t russo1982docker/post:1.0 ./src/post-py
+```
+Результат на Яндекс Инстансе
+```bash
+ubuntu@docker-host-0:~$ sudo docker images -a
+REPOSITORY             TAG       IMAGE ID       CREATED              SIZE
+russo1982docker/post   1.0       8a5333f5fe6a   About a minute ago   62.8MB
+mongo                  latest    1f3d6ec739d8   40 hours ago         654MB
+```
+---
+
+Сборка **comment**
+```bash
+docker build -t russo1982docker/comment:1.0 ./src/comment
+```
+Результат на Яндекс Инстансе
+```bash
+ubuntu@docker-host-0:~$ sudo docker images -a
+REPOSITORY                TAG       IMAGE ID       CREATED          SIZE
+russo1982docker/comment   1.0       f130a3202c94   14 seconds ago   1.01GB
+russo1982docker/post      1.0       8a5333f5fe6a   19 minutes ago   62.8MB
+mongo                     latest    1f3d6ec739d8   40 hours ago     654MB
+```
+---
+Сборка **ui**
+```bash
+docker build -t russo1982docker/ui:1.0 ./src/ui
+```
+Результат на Яндекс Инстансе
+```bash
+ubuntu@docker-host-0:~$ sudo docker images -a
+REPOSITORY                TAG       IMAGE ID       CREATED          SIZE
+russo1982docker/ui        1.0       b1876815cd24   10 seconds ago   1.01GB
+russo1982docker/comment   1.0       f130a3202c94   5 minutes ago    1.01GB
+russo1982docker/post      1.0       8a5333f5fe6a   24 minutes ago   62.8MB
+mongo                     latest    1f3d6ec739d8   41 hours ago     654MB
+```
+---
+
+## Запуск приложения
