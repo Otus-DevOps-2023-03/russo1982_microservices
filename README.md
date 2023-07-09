@@ -143,3 +143,49 @@ mongo                     latest    1f3d6ec739d8   41 hours ago     654MB
 ---
 
 ## Запуск приложения
+
+Создам специальную сеть для запуска приложения. Благодаря созданной сети приложение смогут "общаться"
+В данный момент есть слеующие докер сети в Яндекс Инстансе
+```bash
+ubuntu@docker-host-0:~$ sudo docker network ls
+NETWORK ID     NAME      DRIVER    SCOPE
+56da26a8a710   bridge    bridge    local
+93b333d47893   host      host      local
+aee7cae3b2af   none      null      local
+```
+Создаю новую сеть
+```bash
+$ docker network create reddit-network
+```
+Результат на Яндекс Инстансе
+```bash
+buntu@docker-host-0:~$ sudo docker network ls
+NETWORK ID     NAME             DRIVER    SCOPE
+56da26a8a710   bridge           bridge    local
+93b333d47893   host             host      local
+aee7cae3b2af   none             null      local
+7a42a463d076   reddit-network   bridge    local
+```
+И теперь запускаю контейнеры с приложениями:
+```bash
+docker run --rm -d --network=reddit-network \ # название сети
+--network-alias=post_db \ # имя докер-хоста в сети
+--network-alias=comment_db mongo:latest # используемый докер-образ для запуска контейнера
+```
+```bash
+docker run --rm -d --network=reddit-network \
+--network-alias=post russo1982docker/post:1.0
+```
+```bash
+docker run --rm -d --network=reddit-network \
+--network-alias=comment russo1982docker/comment:1.0
+```
+```bash
+docker run --rm -d --network=reddit-network \
+-p 9292:9292 russo1982docker/ui:1.0
+```
+
+На этой стадии работает только создание новых постов, но нне возможно отобразить данные. Есть проблемы с Докерфайлами или файлами в папке **src**
+---
+
+## Задание со ⭐
