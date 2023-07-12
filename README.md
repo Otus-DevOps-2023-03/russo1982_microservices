@@ -189,3 +189,155 @@ docker run --rm -d --network=reddit-network \
 ---
 
 ## Задание со ⭐
+
+Надло реализовать следующее:
+- Запустите контейнеры с другими сетевыми алиасами
+- Адреса для взаимодействия контейнеров задаются через ENV - переменные внутри Dockerfile 'ов
+- При запуске контейнеров ( docker run ) задайте им переменные окружения соответствующие новым сетевым алиасам, не пересоздавая образ
+- Проверьте работоспособность сервиса
+
+Для этого остановил контейнеры и удалил их. Теперь запускаю контейнера с новыми сетевыми алиасами. Использую те же докер образы что ранее создавал
+
+```bash
+docker run --rm -d --network=reddit-network \
+--network-alias=new_post_db \
+--network-alias=new_comment_db mongo:latest
+```
+```bash
+docker run --rm -d --network=reddit-network \
+--network-alias=new_post russo1982docker/post:1.0
+```
+```bash
+docker run --rm -d --network=reddit-network \
+--network-alias=new_comment russo1982docker/comment:1.0
+```
+```bash
+docker run --rm -d --network=reddit-network \
+-p 9292:9292 russo1982docker/ui:1.0
+```
+И в Докерфайле надо поменять назмания переменных
+**post-py/Dockerfile**
+```bash
+ENV POST_DATABASE_HOST new_post_db
+```
+**comment/Dockerfile**
+```bash
+ENV COMMENT_DATABASE_HOST new_comment_db
+```
+**ui/Dockerfile**
+```bash
+ENV POST_SERVICE_HOST new_post
+ENV POST_SERVICE_PORT 5000
+ENV COMMENT_SERVICE_HOST new_comment
+ENV COMMENT_SERVICE_PORT 9292
+```
+---
+
+## Образы приложения
+
+Как ранее уже замечал докер-образы приложения занимают немало места! Поэтому, подумаю как можно упростить, облегчить размеры докер-образов.
+Пересоберу докер-образ и теперь укажу **ui** **FROM  ubuntu:16.04**
+```bash
+FROM ubuntu:16.04
+RUN apt-get update \
+    && apt-get install -y ruby-full ruby-dev build-essential \
+    && gem install bundler --no-ri --no-rdoc
+
+ENV APP_HOME /app
+RUN mkdir $APP_HOME
+
+WORKDIR $APP_HOME
+ADD Gemfile* $APP_HOME/
+RUN bundle install
+ADD . $APP_HOME
+
+ENV POST_SERVICE_HOST post
+ENV POST_SERVICE_PORT 5000
+ENV COMMENT_SERVICE_HOST comment
+ENV COMMENT_SERVICE_PORT 9292
+
+CMD ["puma"]
+```
+Надо удалить имеющийся докер-образ **ui** и создать заного. И стоить отметить что сборка докер-образа началась с нуля. Все слои были пересозданы.
+
+Результат:
+```bash
+$ docker images -a
+REPOSITORY                TAG       IMAGE ID       CREATED          SIZE
+russo1982docker/ui        1.0       eaf64b2ffe5a   46 seconds ago   384MB
+russo1982docker/comment   1.0       ecb7b3f5e977   27 hours ago     900MB
+russo1982docker/post      1.0       136c8794e3a2   27 hours ago     61.4MB
+mongo                     latest    1f3d6ec739d8   6 days ago       654MB
+```
+как видно размеры докер-образа уже легче.
+
+Далее надо реализовать следующие шаги:
+- Попробуйте собрать образ на основе Alpine Linux
+- Придумайте еще способы уменьшить размер образа
+- Можете реализовать как только для UI сервиса, так и для остальных ( post , comment )
+- Все оптимизации проводите в Dockerfile сервиса. Дополнительные варианты решения уменьшения размера образов можете оформить в виде файла Dockerfile.<цифра> в папке сервиса
+
+В каждой директории соответствущего докер-образа создал файл **Dockerfile.2** где описаны правила сборки докер-образа.
+Запускаю сборку
+```bash
+$ docker build -f src/post-py/Dockerfile.2 -t russo1982docker/post:2.0 ./src/post-py
+& docker build -f src/comment/Dockerfile.2 -t russo1982docker/comment:2.0 ./src/comment
+& docker build -f src/ui/Dockerfile.2 -t russo1982docker/ui:2.0 ./src/ui
+```
+Результат:
+```bash
+$ docker images -a
+REPOSITORY                TAG       IMAGE ID       CREATED        SIZE
+russo1982docker/ui        2.0       bf4a8e54dcb5   27 hours ago   291MB
+russo1982docker/comment   2.0       fb2e6e12a284   27 hours ago   288MB
+russo1982docker/post      2.0       2e8e7692f195   27 hours ago   61.4MB
+mongo                     latest    1f3d6ec739d8   7 days ago     654MB
+```
+И видно, что докер-образы стали легче вдвое.
+
+Запускаю контейнеры:
+```bash
+$ docker run --rm -d --network=reddit-network \
+> --network-alias=post_db \
+> --network-alias=comment_db mongo:latest
+```
+```bash
+$ docker run --rm -d --network=reddit-network \
+--network-alias=post russo1982docker/post:2.0
+```
+```bash
+$ docker run --rm -d --network=reddit-network \
+--network-alias=comment russo1982docker/comment:2.0
+```
+```bash
+$ docker run --rm -d --network=reddit-network \
+-p 9292:9292 russo1982docker/ui:2.0
+```
+Все контейнеры запустились
+```bash
+$ docker ps
+CONTAINER ID   IMAGE                         COMMAND                  CREATED              STATUS              PORTS                                       NAMES
+fbaaf68fb2fc   russo1982docker/ui:2.0        "puma"                   30 seconds ago       Up 28 seconds       0.0.0.0:9292->9292/tcp, :::9292->9292/tcp   pedantic_bouman
+da903bd9630a   russo1982docker/comment:2.0   "puma"                   About a minute ago   Up About a minute                                               compassionate_liskov
+e727a9249cd2   russo1982docker/post:2.0      "python3 post_app.py"    About a minute ago   Up About a minute                                               trusting_burnell
+9dfb75193001   mongo:latest                  "docker-entrypoint.s…"   2 minutes ago        Up 2 minutes        27017/tcp                                   jovial_lamarr
+```
+
+---
+
+## Создание Docker volume. Перезапуск приложения с volume
+
+Тут конечно большие сомнения у меня на счет правильной работы **Docker volume**, так как проблема отоброжения уже имеющихся записей в базе данных остаётся.
+Но, буду пробовать. Создам **Docker volume**
+```bash
+$ docker volume create reddit_db
+```
+И подключу его к контейнеру с MongoDB
+```bash
+$ docker run -d --network=reddit-network --network-alias=post_db \
+--network-alias=comment_db -v reddit_db:/data/db mongo:latest
+```
+
+НА ЭТОМ ВСЁ. НО, НЕ НРАВИТЬСЯ МНЕ РАБОТА, ТАК КАК НЕ РАБОТАЕТ **Can't show blog posts, some problems with the post service.**
+
+ВСЁ!!!
