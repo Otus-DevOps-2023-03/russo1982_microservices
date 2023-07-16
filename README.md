@@ -1,343 +1,172 @@
 # russo1982_microservices
 
 
-## ДЗ №17 Docker-образы Микросервисы (работа с веткой: docker-3)
+## ДЗ №18 Docker: сети, docker-compose (работа с веткой: docker-4)
 ---
+### ЦЕЛЬ
+- Работа с сетями в Docker
+- Использование docker-compose
 
-### ЦЕЛИ
-- Научиться описывать и собирать Docker-образы для сервисного приложения
-- Научиться оптимизировать работу с Docker-образами
-- Запуск и работа приложения на основе Docker-образов, оценка удобства запуска контейнеров при помощи **docker run**
+### ПЛАН
+- Разобраться с работой сети в Docker
+   - none
+   - host
+   - bridge
 
-**ПЛАН**
-- Разбить наше приложение на несколько компонентов
-- Запустить наше микросервисное приложение
+### None network driver
 
-Для начало работы создаём Яндекс инстанс на основе образа созданного с помощью Packer где уже установлен Докер. Чуть меняю терраформ файл **main.tf**
+Запускаю контейнер с использованием сетевого драйыера **none**. В качестве образа использую **joﬀotron/docker-net-tools** для экономии сил и времени,
+т.к. в его состав уже входят необходимые утилиты для работы с сетью:
+- пакеты
+  - bind-tools,
+  - net-tools и curl.
+Контейнер запустится, выполнить команду **ifconfig** и будет удален (флаг --rm).
+Запускаю следующую команду:
 ```bash
-...
-boot_disk {
-    initialize_params {
-      image_id = var.image_id # указан образ с установленным Докером
-      size     = 15
-    }
-  }
-...
-resource "yandex_vpc_address" "static_ip" {
-  name = "static white IP"
-  external_ipv4_address {
-    zone_id = var.zone
-  }
-}
-...
+$ docker run -ti --rm --network none joffotron/docker-net-tools -c ifconfig
 ```
-После создания инстанса проверяю, есть ли там Докер
+Тут запускается докер-контецнер на основа образа **joffotron/docker-net-tools** и сразу послу запуска контейнера следом срабатывает команда **iifconfig**
 ```bash
-$ ssh ubuntu@<ip address>
-ubuntu@russo-docker-host0:~$ systemctl status docker
-● docker.service - Docker Application Container Engine
-   Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
-   Active: active (running) since Wed 2023-07-05 19:14:09 UTC; 1min 3s ago
+Unable to find image 'joffotron/docker-net-tools:latest' locally
+latest: Pulling from joffotron/docker-net-tools
+3690ec4760f9: Pull complete
+0905b79e95dc: Pull complete
+Digest: sha256:5752abdc4351a75e9daec681c1a6babfec03b317b273fc56f953592e6218d5b5
+Status: Downloaded newer image for joffotron/docker-net-tools:latest
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+```
+В результате видно, что из четевых интерфесов есть только **loopback** и сетевой стек самого контейнера работает (ping localhost), но без возможности контактировать с внешним миром. Значит, можно даже запускать сетевые сервисы внутри такого контейнера, но лишь для локальных экспериментов (тестирование, контейнеры для выполнения разовых задач и т.д.)
+
+Теперь следющая команда
+```
+$ docker run -ti --rm --network host joffotron/docker-net-tools -c ifconfig
+```
+После этой команды создаётся контейнер с сетевым драйвером **host** что позволяет создать следующие сетевые интерфейсе на самом хочте, где работает сам докер
+  - br-dd44e6c0aa78
+  - docker0
+  - docker0
+  - docker0
+
+Именнто такие же интерфейсы можно наблюдать при подключению к этому хосту
+```
+$ docker-machine ssh docker-host-0 ip add sh
+```
+Далее запускаю следующую команду три раза:
+```
+$ docker run --network host -d nginx
+  Status: Downloaded newer image for nginx:latest
+  1c8885becca16f3763b493021cbee1eb4c7af0ff9db535627169259f1f4521c4
+  63002da70b54de77fe450ed183e993b91024f4fcdb8c2bbdb946c4056869b2a4
+  293f27e6021e04d1848651cea67ee4bf91ef988e1c40da7399894ca6a127872d
+```
+Как видно каждый раз **ID** контейнера указан другой. И вот такой интересный результат:
+```
+$ docker ps
+CONTAINER ID   IMAGE     COMMAND                  CREATED         STATUS         PORTS     NAMES
+1c8885becca1   nginx     "/docker-entrypoint.…"   2 minutes ago   Up 2 minutes             jolly_pascal
+```
+```
+$  docker ps -a
+CONTAINER ID   IMAGE     COMMAND                  CREATED         STATUS                     PORTS     NAMES
+293f27e6021e   nginx     "/docker-entrypoint.…"   2 minutes ago   Exited (1) 2 minutes ago             unruffled_wright
+63002da70b54   nginx     "/docker-entrypoint.…"   2 minutes ago   Exited (1) 2 minutes ago             nervous_easley
+1c8885becca1   nginx     "/docker-entrypoint.…"   2 minutes ago   Up 2 minutes                         jolly_pascal
+```
+Как видно активным остаётся первый контейнер, а две следующие пытались запуститься, но что-то помешало им сработать.
+```
+ubuntu@docker-host-0:~$ ss -lntp
+State              Recv-Q              Send-Q                              Local Address:Port                             Peer Address:Port
+LISTEN             0                   128                                 127.0.0.53%lo:53                                    0.0.0.0:*
+LISTEN             0                   128                                       0.0.0.0:22                                    0.0.0.0:*
+LISTEN             0                   128                                       0.0.0.0:80                                    0.0.0.0:*
 ```
 
-Работает родимая!!! Также привязываю туда **docker-machine**
-```bash
-docker-machine create \
-  --driver generic \
-  --engine-storage-driver overlay2 \
-  --generic-ip-address= < IP address > \
-  --generic-ssh-user ubuntu \
-  --generic-ssh-key ~/.ssh/appuser \
-  docker-host-0
-```
-```bash
-$ docker-machine env docker-host-0
-export DOCKER_TLS_VERIFY="1"
-export DOCKER_HOST="tcp://< IP address >:2376"
-export DOCKER_CERT_PATH="~/.docker/machine/machines/docker-host-0"
-export DOCKER_MACHINE_NAME="docker-host-0"
-# Run this command to configure your shell:
-# eval $(docker-machine env docker-host-0)
-```
+### NAMESPACE
 
-Далее скачиваю каталог с готовыми микросервисами
-```bash
-$ wget https://github.com/express42/reddit/archive/microservices.zip
-$ unzip microservices.zip
-$ mv reddit-microservices src
+Проверю как меняются **namespace** файле **/var/run/docker/netns/default** в Яндекс Инстансе. Для этого на **docker-host-0** машине выполните команду:
 ```
-Приложение состоит из трех компонентов:
-- **post-py** - сервис отвечающий за написание постов
-- **comment** - сервис отвечающий за написание комментариев
-- **ui** - веб-интерфейс, работающий с другими сервисами
-также требуется база данных **MongoDB**
+$ sudo ln -s /var/run/docker/netns /var/run/netns
+```
+Тут создаю симболик линк **/var/run/netns** который указывает на директорию **/var/run/docker/netns** тем самым можно просматривать существующие в данный
+момент net-namespaces с помощью команды находясь в **docker-host-0**:
+```
+$ sudo ip netns
+```
+И теперь снова запускаю контейнеры с использованием сетевых драйверов **none** и **host** и проверю, как меняется список **namespace**-ов.
 
-Внутри директории каждого сервиса создаю свой **Dockerfile**
-```bash
-$ ls -l src
+```
+$ sudo ip netns
+  5f2d6dc16177
+  default
+```
+### Bridge network driver
 
-comment
-post-py
-ui
 ```
+$ docker network ls
+  NETWORK ID     NAME             DRIVER    SCOPE
+  27f20c3ecf96   bridge           bridge    local
+  93b333d47893   host             host      local
+  aee7cae3b2af   none             null      local
+  dd44e6c0aa78   reddit-network   bridge    local
+```
+**bridge-сеть** уже была создана ранее и называется **reddit-network**
 
-- Сервис **post-py**  **./post-py/Dockerfile**
-- Сервис **comment**  **./comment/Dockerfile**
-- Сервис **ui**       **./ui/Dockerfile**
----
+Все сервисы ссылаются друг на друга по dns-именам, прописанным в ENV-переменных (см Dockerfile). Поэтому указываю имена контейнерам или сетевых алиасов при старте как это было ранее
+```
+$ docker run -d --network=reddit-network --network-alias=post_db --network-alias=comment_db mongo:latest
+$ docker run -d --network=reddit-network --network-alias=post russo1982docker/post:2.0
+$ docker run -d --network=reddit-network --network-alias=comment russo1982docker/comment:2.0
+$ docker run -d --network=reddit-network -p 9292:9292 russo1982docker/ui:2.0
+```
+И тут вроде всё должно работать, но проблема всё еще остаётся.
 
-## Сборка приложения
+Попробую запустить проект в 2-х bridge сетях. Так , чтобы сервис ui не имел доступа к базе данных.
 
-Надо скачать последний образ MongoDB:
-```bash
-$ docker pull mongo:latest # Напоминаю что в данный момент работаем с докером на Яндекс Инстансе
+Сперва удалю активные контейнеры
 ```
-Результат на Яндекс Инстансе
-```bash
-ubuntu@docker-host-0:~$ sudo docker images -a
-REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
-mongo        latest    1f3d6ec739d8   40 hours ago   654MB
+$ docker kill $(docker ps -q)
+$ docker rm $(docker ps -a -q)
 ```
----
-
-Далее сборка образов с сервисами:
-Сборка **post-py**
-```bash
-docker build -t russo1982docker/post:1.0 ./src/post-py
+Создаю docker-сети
 ```
-Результат на Яндекс Инстансе
-```bash
-ubuntu@docker-host-0:~$ sudo docker images -a
-REPOSITORY             TAG       IMAGE ID       CREATED              SIZE
-russo1982docker/post   1.0       8a5333f5fe6a   About a minute ago   62.8MB
-mongo                  latest    1f3d6ec739d8   40 hours ago         654MB
-```
----
-
-Сборка **comment**
-```bash
-docker build -t russo1982docker/comment:1.0 ./src/comment
-```
-Результат на Яндекс Инстансе
-```bash
-ubuntu@docker-host-0:~$ sudo docker images -a
-REPOSITORY                TAG       IMAGE ID       CREATED          SIZE
-russo1982docker/comment   1.0       f130a3202c94   14 seconds ago   1.01GB
-russo1982docker/post      1.0       8a5333f5fe6a   19 minutes ago   62.8MB
-mongo                     latest    1f3d6ec739d8   40 hours ago     654MB
-```
----
-Сборка **ui**
-```bash
-docker build -t russo1982docker/ui:1.0 ./src/ui
-```
-Результат на Яндекс Инстансе
-```bash
-ubuntu@docker-host-0:~$ sudo docker images -a
-REPOSITORY                TAG       IMAGE ID       CREATED          SIZE
-russo1982docker/ui        1.0       b1876815cd24   10 seconds ago   1.01GB
-russo1982docker/comment   1.0       f130a3202c94   5 minutes ago    1.01GB
-russo1982docker/post      1.0       8a5333f5fe6a   24 minutes ago   62.8MB
-mongo                     latest    1f3d6ec739d8   41 hours ago     654MB
-```
----
-
-## Запуск приложения
-
-Создам специальную сеть для запуска приложения. Благодаря созданной сети приложение смогут "общаться"
-В данный момент есть слеующие докер сети в Яндекс Инстансе
-```bash
-ubuntu@docker-host-0:~$ sudo docker network ls
-NETWORK ID     NAME      DRIVER    SCOPE
-56da26a8a710   bridge    bridge    local
-93b333d47893   host      host      local
-aee7cae3b2af   none      null      local
-```
-Создаю новую сеть
-```bash
-$ docker network create reddit-network
-```
-Результат на Яндекс Инстансе
-```bash
-buntu@docker-host-0:~$ sudo docker network ls
+$ docker network create back_net --subnet=10.0.2.0/24
+$ docker network create front_net --subnet=10.0.1.0/24
+$ docker network ls
 NETWORK ID     NAME             DRIVER    SCOPE
-56da26a8a710   bridge           bridge    local
+08f0ed30c8d4   back_net         bridge    local
+27f20c3ecf96   bridge           bridge    local
+7cd9e104d5ea   front_net        bridge    local
 93b333d47893   host             host      local
 aee7cae3b2af   none             null      local
-7a42a463d076   reddit-network   bridge    local
+dd44e6c0aa78   reddit-network   bridge    local
 ```
-И теперь запускаю контейнеры с приложениями:
-```bash
-docker run --rm -d --network=reddit-network \ # название сети
---network-alias=post_db \ # имя докер-хоста в сети
---network-alias=comment_db mongo:latest # используемый докер-образ для запуска контейнера
-```
-```bash
-docker run --rm -d --network=reddit-network \
---network-alias=post russo1982docker/post:1.0
-```
-```bash
-docker run --rm -d --network=reddit-network \
---network-alias=comment russo1982docker/comment:1.0
-```
-```bash
-docker run --rm -d --network=reddit-network \
--p 9292:9292 russo1982docker/ui:1.0
-```
-
-На этой стадии работает только создание новых постов, но нне возможно отобразить данные. Есть проблемы с Докерфайлами или файлами в папке **src**
----
-
-## Задание со ⭐
-
-Надло реализовать следующее:
-- Запустите контейнеры с другими сетевыми алиасами
-- Адреса для взаимодействия контейнеров задаются через ENV - переменные внутри Dockerfile 'ов
-- При запуске контейнеров ( docker run ) задайте им переменные окружения соответствующие новым сетевым алиасам, не пересоздавая образ
-- Проверьте работоспособность сервиса
-
-Для этого остановил контейнеры и удалил их. Теперь запускаю контейнера с новыми сетевыми алиасами. Использую те же докер образы что ранее создавал
-
-```bash
-docker run --rm -d --network=reddit-network \
---network-alias=new_post_db \
---network-alias=new_comment_db mongo:latest
-```
-```bash
-docker run --rm -d --network=reddit-network \
---network-alias=new_post russo1982docker/post:1.0
-```
-```bash
-docker run --rm -d --network=reddit-network \
---network-alias=new_comment russo1982docker/comment:1.0
-```
-```bash
-docker run --rm -d --network=reddit-network \
--p 9292:9292 russo1982docker/ui:1.0
-```
-И в Докерфайле надо поменять назмания переменных
-**post-py/Dockerfile**
-```bash
-ENV POST_DATABASE_HOST new_post_db
-```
-**comment/Dockerfile**
-```bash
-ENV COMMENT_DATABASE_HOST new_comment_db
-```
-**ui/Dockerfile**
-```bash
-ENV POST_SERVICE_HOST new_post
-ENV POST_SERVICE_PORT 5000
-ENV COMMENT_SERVICE_HOST new_comment
-ENV COMMENT_SERVICE_PORT 9292
-```
----
-
-## Образы приложения
-
-Как ранее уже замечал докер-образы приложения занимают немало места! Поэтому, подумаю как можно упростить, облегчить размеры докер-образов.
-Пересоберу докер-образ и теперь укажу **ui** **FROM  ubuntu:16.04**
-```bash
-FROM ubuntu:16.04
-RUN apt-get update \
-    && apt-get install -y ruby-full ruby-dev build-essential \
-    && gem install bundler --no-ri --no-rdoc
-
-ENV APP_HOME /app
-RUN mkdir $APP_HOME
-
-WORKDIR $APP_HOME
-ADD Gemfile* $APP_HOME/
-RUN bundle install
-ADD . $APP_HOME
-
-ENV POST_SERVICE_HOST post
-ENV POST_SERVICE_PORT 5000
-ENV COMMENT_SERVICE_HOST comment
-ENV COMMENT_SERVICE_PORT 9292
-
-CMD ["puma"]
-```
-Надо удалить имеющийся докер-образ **ui** и создать заного. И стоить отметить что сборка докер-образа началась с нуля. Все слои были пересозданы.
-
-Результат:
-```bash
-$ docker images -a
-REPOSITORY                TAG       IMAGE ID       CREATED          SIZE
-russo1982docker/ui        1.0       eaf64b2ffe5a   46 seconds ago   384MB
-russo1982docker/comment   1.0       ecb7b3f5e977   27 hours ago     900MB
-russo1982docker/post      1.0       136c8794e3a2   27 hours ago     61.4MB
-mongo                     latest    1f3d6ec739d8   6 days ago       654MB
-```
-как видно размеры докер-образа уже легче.
-
-Далее надо реализовать следующие шаги:
-- Попробуйте собрать образ на основе Alpine Linux
-- Придумайте еще способы уменьшить размер образа
-- Можете реализовать как только для UI сервиса, так и для остальных ( post , comment )
-- Все оптимизации проводите в Dockerfile сервиса. Дополнительные варианты решения уменьшения размера образов можете оформить в виде файла Dockerfile.<цифра> в папке сервиса
-
-В каждой директории соответствущего докер-образа создал файл **Dockerfile.2** где описаны правила сборки докер-образа.
-Запускаю сборку
-```bash
-$ docker build -f src/post-py/Dockerfile.2 -t russo1982docker/post:2.0 ./src/post-py
-& docker build -f src/comment/Dockerfile.2 -t russo1982docker/comment:2.0 ./src/comment
-& docker build -f src/ui/Dockerfile.2 -t russo1982docker/ui:2.0 ./src/ui
-```
-Результат:
-```bash
-$ docker images -a
-REPOSITORY                TAG       IMAGE ID       CREATED        SIZE
-russo1982docker/ui        2.0       bf4a8e54dcb5   27 hours ago   291MB
-russo1982docker/comment   2.0       fb2e6e12a284   27 hours ago   288MB
-russo1982docker/post      2.0       2e8e7692f195   27 hours ago   61.4MB
-mongo                     latest    1f3d6ec739d8   7 days ago     654MB
-```
-И видно, что докер-образы стали легче вдвое.
-
 Запускаю контейнеры:
-```bash
-$ docker run --rm -d --network=reddit-network \
-> --network-alias=post_db \
-> --network-alias=comment_db mongo:latest
 ```
-```bash
-$ docker run --rm -d --network=reddit-network \
---network-alias=post russo1982docker/post:2.0
+$ docker run -d --network=back_net --name mongo_db --network-alias=post_db --network-alias=comment_db mongo:latest
 ```
-```bash
-$ docker run --rm -d --network=reddit-network \
---network-alias=comment russo1982docker/comment:2.0
 ```
-```bash
-$ docker run --rm -d --network=reddit-network \
--p 9292:9292 russo1982docker/ui:2.0
+$ docker run -d --network=back_net --name post russo1982docker/post:2.0
 ```
-Все контейнеры запустились
-```bash
-$ docker ps
-CONTAINER ID   IMAGE                         COMMAND                  CREATED              STATUS              PORTS                                       NAMES
-fbaaf68fb2fc   russo1982docker/ui:2.0        "puma"                   30 seconds ago       Up 28 seconds       0.0.0.0:9292->9292/tcp, :::9292->9292/tcp   pedantic_bouman
-da903bd9630a   russo1982docker/comment:2.0   "puma"                   About a minute ago   Up About a minute                                               compassionate_liskov
-e727a9249cd2   russo1982docker/post:2.0      "python3 post_app.py"    About a minute ago   Up About a minute                                               trusting_burnell
-9dfb75193001   mongo:latest                  "docker-entrypoint.s…"   2 minutes ago        Up 2 minutes        27017/tcp                                   jovial_lamarr
+```
+$ docker run -d --network=back_net --name comment russo1982docker/comment:2.0
+```
+```
+$ docker run -d --network=front_net --name ui -p 9292:9292 russo1982docker/ui:2.0
 ```
 
+Docker при инициализации контейнера может подключить к нему только одну сеть. При этом контейнеры из соседних сетей не будут доступны как в DNS, так и для взаимодействия по сети. Поэтому нужно поместить контейнеры **post** и **comment** в обе сети.
+
+Дополнительные сети подключаются командой:
+```
+$ docker network connect front_net post
+$ docker network connect front_net comment
+```
 ---
 
-## Создание Docker volume. Перезапуск приложения с volume
-
-Тут конечно большие сомнения у меня на счет правильной работы **Docker volume**, так как проблема отоброжения уже имеющихся записей в базе данных остаётся.
-Но, буду пробовать. Создам **Docker volume**
-```bash
-$ docker volume create reddit_db
-```
-И подключу его к контейнеру с MongoDB
-```bash
-$ docker run -d --network=reddit-network --network-alias=post_db \
---network-alias=comment_db -v reddit_db:/data/db mongo:latest
-```
-
-НА ЭТОМ ВСЁ. НО, НЕ НРАВИТЬСЯ МНЕ РАБОТА, ТАК КАК НЕ РАБОТАЕТ **Can't show blog posts, some problems with the post service.**
-
-ВСЁ!!!
+## Docker-compose
