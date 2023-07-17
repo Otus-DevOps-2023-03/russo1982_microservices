@@ -170,3 +170,48 @@ $ docker network connect front_net comment
 ---
 
 ## Docker-compose
+
+  При работе с Docker-compose можно найти решения к следующим проблемам докер-контейнеров
+  - Одно приложение состоит из множества контейнеров/сервисов
+  - Один контейнер зависит от другого
+  - Порядок запуска имеет значение
+  - docker build/run/create … использовать эти команды долго и много
+  - Отдельная утилита
+  - Декларативное описание docker-инфраструктуры в YAML-формате
+  - Управление многоконтейнерными приложениями
+
+  То есть Docker-compose можно понимать как Ansible для работы с контейнерами.
+
+  ### ПЛАН
+
+  - Установить docker-compose на локальную машину
+  - Собрать образы приложения reddit с помощью docker-compose
+  - Запустить приложение reddit с помощью docker-compose
+
+Установка docker-compose V2, потому что *From July 2023 Compose V1 stopped receiving updates.*
+```
+$ sudo apt-get update
+$ sudo apt  install docker-compose
+```
+
+Далее в директории с проектом **reddit-microservices**, папка **src**, из предыдущего домашнего задания создаю файл **docker-compose.yml**
+docker-compose поддерживает интерполяцию (подстановку) переменных окружения. Поэтому перед запуском необходимо экспортировать
+значения данных переменных окружения. В данном случае это переменная **USERNAME**.
+Останвлю и удалю контейнеры:
+```
+$ docker kill $(docker ps -q)
+$ docker rm $(docker ps -a -q)
+```
+Указываю значение переменной и запускаю процесс сборки контейнеров по правилам указанным в файле **docker-compose.yml**
+```
+$ export USERNAME=russo1982docker
+$ docker-compose up -d
+$ docker-compose ps
+Name                  Command             State                    Ports
+----------------------------------------------------------------------------------------------
+src_comment_1   puma                          Up
+src_post_1      python3 post_app.py           Up
+src_post_db_1   docker-entrypoint.sh mongod   Up      27017/tcp
+src_ui_1        puma                          Up      0.0.0.0:9292->9292/tcp,:::9292->9292/tcp
+```
+И О ЧУДО!!! ПРОБЛЕМА, КОТОРАЯ ПРЕСЛЕДОВАЛА МЕНЯ С ПРОШЛОГО ДЗ СЕЙЧАС ИСЧЕЗЛА И БАЗА-ЖАННЫХ ДОСТУПНА В ПОЛНОЙ МЕРЕ.
