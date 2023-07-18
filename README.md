@@ -289,3 +289,148 @@ networks:
   - порт публикации сервиса ui
   - версии сервисов
   - возможно что-либо еще на ваше усмотрение
+```
+version: '3.3'
+services:
+  post_db:
+    image: "mongo:${MONGO_VERSION}"
+    volumes:
+      - post_db:/data/db
+    networks:
+      - back_net
+
+  ui:
+    build: ./ui
+    image: "${USERNAME}/ui:${TAG}"
+    ports:
+      - ${UI_PORT}
+    networks:
+      - front_net
+
+  post:
+    build: ./post-py
+    image: "${USERNAME}/post:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+  comment:
+    build: ./comment
+    image: "${USERNAME}/comment:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+volumes:
+  post_db:
+
+
+networks:
+#  reddit-network:
+
+  back_net:
+    name: Network for DB comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${BACK_SUBNET}
+          gateway: ${BACK_GW}
+
+  front_net:
+    name: Network for UI comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${FRONT_SUBNET}
+          gateway: ${FRONT_GW}
+```
+
+- Узнайте как образуется базовое имя проекта. Можно ли его задать? Если можно то как?
+```
+export COMPOSE_PROJECT_NAME=myproject
+```
+---
+
+## Задание со *
+
+Создайте docker-compose.override.yml для reddit проекта, который позволит:
+  - Изменять код каждого из приложений, не выполняя сборку образа
+  - Запускать puma для руби приложений в дебаг режиме с двумя воркерами (флаги --debug и -w 2)
+
+ПРОШУ НЕ ИСПОЛЬЗОВАТЬ ТЕРМИНОЛОГИЮ ДЕВЕЛОПЕРОВ. МНЕ ПРИШЛОСЬ ПОТРАТИТЬ ЧАС ЧТОБ ПОНЯТЬ ЭЛЕМЕНТАРНОЕ, КТОРОЕ ОПИСАНО В СТАТЬЕ
+```
+https://habr.com/ru/companies/otus/articles/337688/
+
+Используйте несколько файлов Docker Compose, если необходимо изменять приложение под разные среды (разработка, промежуточная среда и продакшн) или запускать задачи администрирования через Compose приложение. Это предоставляет способ совместного использования общих конфигов.
+
+Docker Compose по умолчанию читает два файла: docker-compose.yml и docker-compose.override.yml. В файле docker-compose-override.yml можно хранить переопределения для существующих сервисов или определять новые. Чтобы использовать несколько файлов (или файл переопределения с другим именем), необходимо передать -f в docker-compose up (порядок имеет значение)
+
+$ docker-compose up -f my-override-1.yml my-overide-2.yml
+```
+Создал файл **docker-compose.override.yml**
+
+```
+version: '3.3'
+services:
+  post_db:
+    image: "mongo:${MONGO_VERSION}"
+    volumes:
+      - post_db:/data/db_1
+    networks:
+      - back_net
+
+  ui:
+    build: ./ui
+    image: "${USERNAME}/ui:${TAG}"
+    ports:
+      - "10092:10092/tcp"
+    networks:
+      - front_net
+
+  post:
+    build: ./post-py
+    image: "${USERNAME}/post:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+  comment:
+    build: ./comment
+    image: "${USERNAME}/comment:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+volumes:
+  post_db:
+
+
+networks:
+#  reddit-network:
+
+  back_net:
+    name: Network for DB comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${BACK_SUBNET}
+          gateway: ${BACK_GW}
+
+  front_net:
+    name: Network for UI comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${FRONT_SUBNET}
+          gateway: ${FRONT_GW}
+```
+
+```
+$ docker-compose --env-file .env up -d
+myproject_comment_1 is up-to-date
+myproject_post_db_1 is up-to-date
+myproject_post_1 is up-to-date
+myproject_ui_1 is up-to-date
+```
+
+НА ЭТОМ ВСЁ!!!

@@ -1,0 +1,53 @@
+version: '3.3'
+services:
+  post_db:
+    image: "mongo:${MONGO_VERSION}"
+    volumes:
+      - post_db:/data/db_1
+    networks:
+      - back_net
+
+  ui:
+    build: ./ui
+    image: "${USERNAME}/ui:${TAG}"
+    ports:
+      - "10092:10092/tcp"
+    networks:
+      - front_net
+
+  post:
+    build: ./post-py
+    image: "${USERNAME}/post:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+  comment:
+    build: ./comment
+    image: "${USERNAME}/comment:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+volumes:
+  post_db:
+
+
+networks:
+#  reddit-network:
+
+  back_net:
+    name: Network for DB comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${BACK_SUBNET}
+          gateway: ${BACK_GW}
+
+  front_net:
+    name: Network for UI comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${FRONT_SUBNET}
+          gateway: ${FRONT_GW}
