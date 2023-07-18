@@ -215,3 +215,77 @@ src_post_db_1   docker-entrypoint.sh mongod   Up      27017/tcp
 src_ui_1        puma                          Up      0.0.0.0:9292->9292/tcp,:::9292->9292/tcp
 ```
 И О ЧУДО!!! ПРОБЛЕМА, КОТОРАЯ ПРЕСЛЕДОВАЛА МЕНЯ С ПРОШЛОГО ДЗ СЕЙЧАС ИСЧЕЗЛА И БАЗА-ЖАННЫХ ДОСТУПНА В ПОЛНОЙ МЕРЕ.
+
+Кажется ясна и причина проблемы
+```
+$ docker images -a
+REPOSITORY                   TAG       IMAGE ID       CREATED       SIZE
+mongo                        latest    1f3d6ec739d8   13 days ago   654MB
+mongo                        3.2       fb885d89ea5c   4 years ago   300MB
+```
+Ранее использовал **latest** версию MongoDB из-за чего и была проблема с полноценным доступом.
+
+### Задание
+
+- Изменить docker-compose под кейс с множеством сетей, сетевых алиасов
+
+```
+version: '3.3'
+services:
+  post_db:
+    image: mongo:3.2
+    volumes:
+      - post_db:/data/db
+    networks:
+      - back_net
+
+  ui:
+    build: ./ui
+    image: ${USERNAME}/ui:2.0
+    ports:
+      - 9292:9292/tcp
+    networks:
+      - front_net
+
+  post:
+    build: ./post-py
+    image: ${USERNAME}/post:2.0
+    networks:
+      - front_net
+      - back_net
+
+  comment:
+    build: ./comment
+    image: ${USERNAME}/comment:2.0
+    networks:
+      - front_net
+      - back_net
+
+volumes:
+  post_db:
+
+
+networks:
+#  reddit-network:
+
+  back_net:
+    name: Network for DB comment post
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "10.0.2.0/24"
+          gateway: "10.0.2.1"
+
+  front_net:
+    name: Network for UI comment post
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "10.0.1.0/24"
+          gateway: "10.0.1.1"
+```
+
+- Параметризуйте с помощью переменных окружений:
+  - порт публикации сервиса ui
+  - версии сервисов
+  - возможно что-либо еще на ваше усмотрение
