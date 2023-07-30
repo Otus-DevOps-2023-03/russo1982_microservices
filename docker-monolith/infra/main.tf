@@ -21,21 +21,30 @@ provider "yandex" {
   zone                     = var.zone
 }
 
-resource "yandex_compute_instance" "docker-host" {
-  count    = var.instances
-  name     = "docker-host-${count.index}"
-  hostname = "russo-docker-host${count.index}"
+resource "yandex_vpc_address" "static_ip" {
+  name                = "static white IP"
+  deletion_protection = false
+  external_ipv4_address {
+    zone_id = var.zone
+  }
+}
+
+resource "yandex_compute_instance" "gitlab-ci" {
+  count                     = var.instances
+  name                      = "gitlab-ci-host-${count.index}"
+  hostname                  = "gitlab-ci-${count.index}"
+  allow_stopping_for_update = true
 
   resources {
     cores         = 2
     core_fraction = 5
-    memory        = 2
+    memory        = 4
   }
 
   boot_disk {
     initialize_params {
       image_id = var.image_id
-      size     = 15
+      size     = 50
     }
   }
 
@@ -44,8 +53,9 @@ resource "yandex_compute_instance" "docker-host" {
   }
 
   network_interface {
-    subnet_id = var.subnet_id
-    nat       = true
+    nat_ip_address = "158.160.44.33"
+    subnet_id      = var.subnet_id
+    nat            = true
   }
 
   metadata = {
@@ -53,13 +63,7 @@ resource "yandex_compute_instance" "docker-host" {
   }
 }
 
-resource "yandex_vpc_address" "static_ip" {
-  name = "static white IP"
-  external_ipv4_address {
-    zone_id = var.zone
-  }
-}
-
+/*
 resource "local_file" "ans_inventory" {
   filename = "${path.module}/ansible/inventory.ini"
   content = templatefile("${path.module}/ansible/hosts.tpl",
@@ -68,3 +72,4 @@ resource "local_file" "ans_inventory" {
   })
 
 }
+*/
