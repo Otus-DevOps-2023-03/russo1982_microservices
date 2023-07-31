@@ -145,5 +145,65 @@ git push gitlab gitlab-ci-1
 Пайплайн для GitLab определяется в файле **.gitlab-ci.yml**
 Данный файл создаю в локальной ветке и после **git push**
 ```
+stages:
+  - build
+  - test
+  - deploy
 
+build_job:
+  stage: build
+  script:
+    - echo 'Building'
+
+test_unit_job:
+  stage: test
+  script:
+    - echo 'Testing 1'
+
+test_integration_job:
+  stage: test
+  script:
+    - echo 'Testing 2'
+
+deploy_job:
+  stage: deploy
+  script:
+    - echo 'Deploy'
+```
+И отправляю на Gitlab
+```
+git add .
+git commit -m '.gitlab-ci.yml file added'
+```
+
+Таким образом файл деклорации запуска пайплайна улител в репо в Gitlab но не запустился так как пока нет раннеров.
+Но для того чтоб его запустить надо будет найти токен. Увидеть его можно в настройках проекта. РОЙСЯ ТАМ!!! и найдешь что-то в таком виде
+```
+sudo gitlab-runner register --url http://158.160.44.44/ --registration-token GR1348941s7Bc6gFEJfb
+```
+
+**GR1348941s7Bc6gFEJfb** это и есть токен.
+
+Для добавления раннера подключаюсь по **ssh** к Яндекс Инстансу где и крутится Gitlab и запускаю следующие команды
+```
+docker run -d --name gitlab-runner --restart always -v /srv/gitlab-runner/config:/etc/gitlab-runner -v /var/run/docker.sock:/var/run/docker.sock gitlab/gitlab-runner:latest
+```
+После запуска раннер нужно зарегистрировать. Узнать подробно о команде **docker exec -it gitlab-runner gitlab-runner register --help**
+```
+docker exec -it gitlab-runner gitlab-runner register \
+> --url http://158.160.44.44/ \
+> --non-interactive \
+> --locked=false \
+> --name DockerRunner \
+> --executor docker \
+> --docker-image alpine:latest \
+> --registration-token GR1348941s7BcLFZGEJfb \
+> --tag-list "linux,xenial,ubuntu,docker" \
+> --run-untagged
+
+
+Registering runner... succeeded                     runner=GR1348941s7BcLFZG
+Runner registered successfully. Feel free to start it, but if it's running already the config should be automatically reloaded!
+
+Configuration (with the authentication token) was saved in "/etc/gitlab-runner/config.toml"
 ```
