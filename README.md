@@ -1,7 +1,7 @@
 # russo1982_microservices
 
 
-## ДЗ №0 Gitlab CI: Построение процесса непрерывной поставки (работа с веткой: gitlab-ci-1)
+## ДЗ №20 Gitlab CI: Построение процесса непрерывной поставки (работа с веткой: gitlab-ci-1)
 ---
 ### ЦЕЛЬ
 - Подготовить инсталляцию Gitlab CI
@@ -130,3 +130,20 @@ root@gitlab:/# exit # выход из командной строки конте
 И РАБОТАЕТ!!!
 
 ---
+
+### Создание группы и проектов
+
+Создал группу **homework** и в этой группе проект **example**
+
+Далее в этот проект привязал свою локальную ветку **gitlab-ci-1**
+```
+git remote add gitlab http://158.160.44.44/homework/example.git
+git push gitlab gitlab-ci-1
+    To http://158.160.44.44/homework/example.git
+    * [new branch]      gitlab-ci-1 -> gitlab-ci-1
+```
+Пайплайн для GitLab определяется в файле **.gitlab-ci.yml**
+Данный файл создаю в локальной ветке и после **git push**
+```
+
+```
