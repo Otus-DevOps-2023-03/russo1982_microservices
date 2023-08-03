@@ -219,3 +219,67 @@ git add reddit/
 git commit -m "Add reddit app"
 git push gitlab gitlab-ci-1
 ```
+Раннер запустил тесты сразу.
+
+Далее корректирую файл пайплайна **.gitlab-ci.yml** добавляю следующое описание
+
+```
+image: ruby:2.4.2
+
+stages:
+  ...
+
+variables:
+  DATABASE_URL: "mongodb://mongo/user_posts"
+
+before_script:
+  - cd reddit
+  - bundle install
+
+test_unit_job:
+  stage: test
+  services: -mongo:latest
+  script:
+    - ruby simpletest.rb
+    - echo 'Testing 1'
+...
+```
+
+В описании пайплайна добавил вызов теста в файле **simpletest.rb** и нужно создать его в папке **reddit**
+Файл **simpletest.rb**
+```
+require_relative './app'
+require 'test/unit'
+require 'rack/test'
+
+set :environment, :test
+
+class MyAppTest < Test::Unit::TestCase
+  include Rack::Test::Methods
+
+  def app
+    Sinatra::Application
+  end
+
+  def test_get_request
+    get '/'
+    assert last_response.ok?
+  end
+end
+```
+Последним шагом нужно добавить в файл **reddit/Gemfile** библиотеку **rack-test** для тестирования. В файл  **reddit/Gemfile** добавил следующее
+
+```
+...
+gem 'sinatra', '~> 2.0.1'
+gem 'haml'
+gem 'bson_ext'
+gem 'bcrypt'
+gem 'puma'
+gem 'mongo'
+gem 'json'
+gem 'rack-test'
+...
+```
+
+Теперь отправлю код в GitLab и проверю, что теперь **test_unit_job** гоняет тесты
