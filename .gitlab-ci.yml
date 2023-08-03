@@ -19,7 +19,8 @@ before_script:
 
 test_unit_job:
   stage: test
-  services: -mongo:latest
+  services:
+    - mongo:latest
   script:
     - ruby simpletest.rb
     - echo 'Testing 1'
