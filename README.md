@@ -207,3 +207,15 @@ Runner registered successfully. Feel free to start it, but if it's running alrea
 
 Configuration (with the authentication token) was saved in "/etc/gitlab-runner/config.toml"
 ```
+Сейчас раннер запускает тесты и всё проходит успешно. Тесты по очереди проходят стадии **build** **test** **deploy** . Но, снова, исходя из описаний в файле **.gitlab-ci.yml** преполагаю, что в каждой стадии теста просто запускается команда **echo** и цель была просто добиться того, чтоб пайплайн запускался и проходил все стадии теста.
+
+### Добавление Reddit в проект
+
+Да, надо добавить **Reddit** в локальное репо и после запушать в Gitlfb наш.
+
+```
+git clone https://github.com/express42/reddit.git && rm -rf ./reddit/.git
+git add reddit/
+git commit -m "Add reddit app"
+git push gitlab gitlab-ci-1
+```
