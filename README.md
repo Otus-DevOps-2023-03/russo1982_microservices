@@ -353,4 +353,36 @@ deploy_dev_job:
     name: dev
     url: http://dev.example.com
 ```
-Далее делаем git push и запускается пайплайн.
+Далее делаем git push и запускается пайплайн. Всё прошло отлично! Если перейти в Operate -> Environments , то там появится определение первого окружения.
+
+### Staging и Production
+
+Теперь надо определить два новых этапа: **stage** и **production**. Первый будет содержать задачу, имитирующую выкатку на окружение **staging**, второй - на **production**. Эти задачи нужно определить таким образом, чтобы они запускались вручную, с помощью аргумента **when: manual**.
+```
+...
+stages:
+  - build
+  - test
+  - review
+  - stage
+  - production
+...
+staging:
+  stage: stage
+  when: manual
+  script:
+    - echo 'Deploy'
+  environment:
+    name: beta
+    url: http://beta.example.com
+
+production:
+  stage: production
+  when: manual
+  script:
+    - echo 'Deploy'
+  environment:
+    name: production
+    url: http://example.com
+```
+Снова пушаю.
