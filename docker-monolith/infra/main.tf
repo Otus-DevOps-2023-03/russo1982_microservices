@@ -32,13 +32,14 @@ resource "yandex_vpc_address" "static_ip" {
 resource "yandex_compute_instance" "gitlab-ci" {
   count                     = var.instances
   name                      = "gitlab-ci-host-${count.index}"
+  platform_id               = "standard-v3"
   hostname                  = "gitlab-ci-${count.index}"
   allow_stopping_for_update = true
 
   resources {
     cores         = 2
-    core_fraction = 5
-    memory        = 4
+    core_fraction = 20
+    memory        = 8
   }
 
   boot_disk {

@@ -284,20 +284,73 @@ gem 'rack-test'
 
 Теперь отправлю код в GitLab и проверю, что теперь **test_unit_job** гоняет тесты
 
+Но тут начали появлятся проблемы при проведении тестов. Причиной тому нехватака memeroy 4Gb. Пришлось поменять селдующие свойства Яндекс Инстанса
+```
+...
+resource "yandex_compute_instance" "gitlab-ci" {
+  count                     = var.instances
+  name                      = "gitlab-ci-host-${count.index}"
+  platform_id               = "standard-v3"
+  hostname                  = "gitlab-ci-${count.index}"
+  allow_stopping_for_update = true
 
+  resources {
+    cores         = 2
+    core_fraction = 20
+    memory        = 8
+  }
+  ...
+```
+Указал платформу **"standard-v3"** и размер оперативной памяти **memory = 8Gb**
 
+В результате тесты успешно пройдены.
 
-Gem::Ext::BuildError: ERROR: Failed to build gem native extension.
-    current directory: /usr/local/bundle/gems/json-2.1.0/ext/json/ext/generator
-/usr/local/bin/ruby -r ./siteconf20230803-11-1vuylmw.rb extconf.rb
-Cannot allocate memory - /usr/local/bin/ruby -r ./siteconf20230803-11-1vuylmw.rb
-extconf.rb 2>&1
-Gem files will remain installed in /usr/local/bundle/gems/json-2.1.0 for
-inspection.
-Results logged to
-/usr/local/bundle/extensions/x86_64-linux/2.4.0/json-2.1.0/gem_make.out
-An error occurred while installing json (2.1.0), and Bundler cannot continue.
-Make sure that `gem install json -v '2.1.0'` succeeds before bundling.
-In Gemfile:
-  json
-ERROR: Job failed: exit code 1
+### Окружение dev
+
+В пайплайне есть задача ( job) с названием **deploy_job** , но там не определено, что и куда будет задеплоено. Поменяю пайплайн таким образом, чтобы **deploy_job** стал определением окружения **dev**, на которое условно будет выкатываться каждое изменение в коде проекта.
+
+Редактирую файл **.gitlab-ci.yml**.
+- Надо переименовать stage deploy в review
+- deploy_job заменить на deploy_dev_job и определить окружение в ней
+```
+image: ruby:2.4.2
+
+stages:
+  - build
+  - test
+  - review
+
+build_job:
+  stage: build
+  script:
+    - echo 'Building'
+
+variables:
+  DATABASE_URL: "mongodb://mongo/user_posts"
+
+before_script:
+  - cd reddit
+  - bundle install
+
+test_unit_job:
+  stage: test
+  services:
+    - mongo:latest
+  script:
+    - ruby simpletest.rb
+    - echo 'Testing 1'
+
+test_integration_job:
+  stage: test
+  script:
+    - echo 'Testing 2'
+
+deploy_dev_job:
+  stage: review
+  script:
+    - echo 'Deploy'
+  environment:
+    name: dev
+    url: http://dev.example.com
+```
+Далее делаем git push и запускается пайплайн.
