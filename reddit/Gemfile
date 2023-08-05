@@ -4,10 +4,9 @@ gem 'sinatra', '~> 2.0.1'
 gem 'haml'
 gem 'bson_ext'
 gem 'bcrypt'
-gem 'puma', '3.10.0'
+gem 'puma'
 gem 'mongo'
 gem 'json'
-
 gem 'rack-test'
 
 group :development do

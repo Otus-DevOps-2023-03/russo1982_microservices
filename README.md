@@ -283,3 +283,21 @@ gem 'rack-test'
 ```
 
 Теперь отправлю код в GitLab и проверю, что теперь **test_unit_job** гоняет тесты
+
+
+
+
+Gem::Ext::BuildError: ERROR: Failed to build gem native extension.
+    current directory: /usr/local/bundle/gems/json-2.1.0/ext/json/ext/generator
+/usr/local/bin/ruby -r ./siteconf20230803-11-1vuylmw.rb extconf.rb
+Cannot allocate memory - /usr/local/bin/ruby -r ./siteconf20230803-11-1vuylmw.rb
+extconf.rb 2>&1
+Gem files will remain installed in /usr/local/bundle/gems/json-2.1.0 for
+inspection.
+Results logged to
+/usr/local/bundle/extensions/x86_64-linux/2.4.0/json-2.1.0/gem_make.out
+An error occurred while installing json (2.1.0), and Bundler cannot continue.
+Make sure that `gem install json -v '2.1.0'` succeeds before bundling.
+In Gemfile:
+  json
+ERROR: Job failed: exit code 1
