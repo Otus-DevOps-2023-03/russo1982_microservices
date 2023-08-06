@@ -414,3 +414,38 @@ stage:
 ...
 ```
 Теперь изменения без указания тэга запустят пайплайн без задач **staging** и **production**. А изменение, помеченное тэгом в git, запустит полный пайплайн.
+
+Далее делаю пуш, но с указанием тэга
+```
+git add .
+git commit -m "#5 add logout button to profile page"
+git tag 2.4.10
+git push gitlab gitlab-ci-1 --tags
+```
+
+### Динамические окружения
+
+Gitlab CI позволяет определить динамические окружения, что позволяет иметь выделенный стенд для, например, каждой feature-ветки в git.
+Определяются динамические окружения с помощь переменных, доступных в **.gitlab-ci.yml** .
+
+Добавлю ещё одну задачу. Эта задача определяет динамическое окружение для каждой ветки в репозитории, кроме ветки **master(main)**.
+
+```
+...
+branch review:
+  stage: review
+  script: echo "Deploy to $CI_ENVIRONMENT_SLUG"
+  environment:
+    name: branch/$CI_COMMIT_REF_NAME
+    url: http://$CI_ENVIRONMENT_SLUG.example.com
+  only:
+    - branches
+  except:
+    - main
+
+staging:
+...
+```
+Теперь на каждую ветку в git, отличную от master, Gitlab CI будет определять новое окружение.
+
+Попробую создать пару новых веток, закоммитить туда что-нибудь и запушить.
