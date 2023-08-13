@@ -31,9 +31,9 @@ resource "yandex_vpc_address" "static_ip" {
 
 resource "yandex_compute_instance" "gitlab-ci" {
   count                     = var.instances
-  name                      = "gitlab-ci-host-${count.index}"
+  name                      = "docker-host-${count.index}"
   platform_id               = "standard-v3"
-  hostname                  = "gitlab-ci-${count.index}"
+  hostname                  = "docker-host-${count.index}"
   allow_stopping_for_update = true
 
   resources {
