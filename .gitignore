@@ -8,3 +8,13 @@ variables.json
 *.retry
 jdauphant.nginx
 vault.key
+
+docker-compose.yml
+build_info.txt
+prometheus/
+
+## python specific
+*.pyc
+
+#docker-compose.yml parametrized file
+.env
