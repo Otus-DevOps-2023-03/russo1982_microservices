@@ -97,7 +97,7 @@ prom/prometheus              latest    3b907f5313b7   2 weeks ago   245MB
 russo1982docker/prometheus   latest    a1d41e762fb5   5 years ago   112MB
 ```
 
-### Соберка images микросервисов
+### Сборка images микросервисов
 
 В коде микросервисов есть healthcheck-и для проверки работоспособности приложения. Сборку образов теперь необходимо производить при помощи скриптов **docker_build.sh**, которые есть в директории каждого сервиса. С его помощью добавлю информацию из Git в healthcheck.
 
@@ -125,4 +125,82 @@ russo1982docker/ui           latest    92c16d380c34   7 minutes ago   384MB
 russo1982docker/prometheus   latest    a1d41e762fb5   5 years ago     112MB
 prom/prometheus              latest    3b907f5313b7   2 weeks ago     245MB
 ```
-Все нужные докер-образы созданы теперь осталось создать файл **docker-compose.yml** где и укажу какие будут настройки для запуска каждого докер-образа, и определю правила взаимосвязи между ними.
+Все нужные докер-образы созданы теперь осталось создать файл **docker/docker-compose.yml** где и укажу какие будут настройки для запуска каждого докер-образа, и определю правила взаимосвязи между ними.
+
+Вот только нет еще докер-образа MongoDB на Яндекс инстансе. И его тоже создаю
+```
+docker pull mongo:3.2
+
+ubuntu@docker-host-0:~$ sudo docker images
+REPOSITORY                   TAG       IMAGE ID       CREATED          SIZE
+russo1982docker/comment      latest    fa117dd5fd59   30 minutes ago   900MB
+russo1982docker/post         latest    f59e63e7ee2d   31 minutes ago   61.4MB
+russo1982docker/ui           latest    92c16d380c34   33 minutes ago   384MB
+prom/prometheus              latest    3b907f5313b7   2 weeks ago      245MB
+mongo                        3.2       fb885d89ea5c   4 years ago      300MB
+russo1982docker/prometheus   latest    a1d41e762fb5   5 years ago      112MB
+
+```
+
+```
+version: '3.3'
+services:
+  post_db:
+    image: "mongo:${MONGO_VERSION}"
+    volumes:
+      - post_db:/data/db
+    networks:
+      - back_net
+
+  ui:
+    build: ./ui
+    image: "${USERNAME}/ui:${TAG}"
+    ports:
+      - ${UI_PORT}
+    networks:
+      - front_net
+
+  post:
+    build: ./post-py
+    image: "${USERNAME}/post:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+  comment:
+    build: ./comment
+    image: "${USERNAME}/comment:${TAG}"
+    networks:
+      - front_net
+      - back_net
+
+volumes:
+  post_db:
+
+
+networks:
+#  reddit-network:
+
+  back_net:
+    name: Network for DB comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${BACK_SUBNET}
+          gateway: ${BACK_GW}
+
+  front_net:
+    name: Network for UI comment post
+    driver: ${NETWORK_DRIVER}
+    ipam:
+      config:
+        - subnet: ${FRONT_SUBNET}
+          gateway: ${FRONT_GW}
+```
+
+Поднимаю сервисы, определенные в **docker/docker-compose.yml**
+```
+docker-compose up -d
+```
+
+## Мониторинг состояния микросервисов
