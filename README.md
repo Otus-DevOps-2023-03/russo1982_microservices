@@ -204,3 +204,73 @@ docker-compose up -d
 ```
 
 ## Мониторинг состояния микросервисов
+
+Если сервисы здоровы, то **healthcheck** проверка возвращает **status=1** , что соответствует тому, что сам сервис здоров. Если один из нужных ему сервисов нездоров или недоступен, то проверка вернет **status=0**
+
+Если статус не равен 1, надо проверить какой сервис недоступен , и что заданы ли все **aliases** для DB.
+
+## Сбор метрик хоста (Exporters)
+
+Воспользуюсь **Node экспортер** для сбора информации о работе **Docker хоста** (виртуалки, где запущены контейнеры) и представлению этой информации в **Prometheus**.
+
+**Node экспортер** буду запускать также в контейнере. Включу ещё один сервиc в **docker/docker-compose.yml** файле. Также надо добавить определение сетей для сервиса **node-exporter**, чтобы обеспечить доступ **Prometheus** к экспортеру.
+
+```
+services:
+
+  node-exporter:
+    image: prom/node-exporter:v0.15.2
+    user: root
+    networks:
+      front_net:
+        aliases:
+          - "node-exporter"
+      back_net:
+        aliases:
+          - "node-exporter"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+
+```
+
+Далее надо сообщить **Prometheus** чтоб следил за еще одним сервисом, и нужно добавить информацию о нем в конфиг **prometheus.yml**
+```
+ - job_name: "node"
+    static_configs:
+      - targets:
+          - "node-exporter:9100"
+```
+Заново собираю новый Docker для Prometheus. Перехожу в директорию **monitoring/prometheus**
+```
+docker build -t $USER_NAME/prometheus .
+```
+Следом сервисы все пересоздаю. Обратно в директорию **docker**
+```
+docker-compose down
+docker-compose up -d
+```
+
+Отправляю собранные образы на DockerHub:
+```
+$ docker login
+Login Succeeded
+
+$ docker push $USER_NAME/ui
+$ docker push $USER_NAME/comment
+$ docker push $USER_NAME/post
+$ docker push $USER_NAME/prometheus
+```
+
+UI      -->  https://hub.docker.com/repository/docker/russo1982docker/ui
+COMMENT -->  https://hub.docker.com/repository/docker/russo1982docker/comment
+POST    -->  https://hub.docker.com/repository/docker/russo1982docker/post
+PROMETH -->  https://hub.docker.com/repository/docker/russo1982docker/prometheus
+
+
+На этом всё!!! Решить проблему с mongodb_exporter не получилось пока.
